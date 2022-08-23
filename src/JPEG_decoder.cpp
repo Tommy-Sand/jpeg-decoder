@@ -47,8 +47,16 @@ public:
 };
 
 class QTable{
+
+};
+
+class DCTable{
+
+};
+
+class HTable{
 public:
-    QTable(uint16_t Length, uint8_t Type, uint8_t Table_ID, uint8_t H_codes[16], uint8_t *Symbol_array):
+    HTable(uint16_t Length, uint8_t Type, uint8_t Table_ID, uint8_t H_codes[16], uint8_t *Symbol_array):
     length{Length}, type{Type}, table_ID{Table_ID}, symbol_array{Symbol_array} {
         std::memcpy(h_codes, H_codes, 16);
     }
@@ -60,17 +68,10 @@ public:
     uint8_t *symbol_array;
 };
 
-class DCTable{
-
-};
-
-class HTable{
-
-};
-
 JFIF_header *header;
 QTable *qtable;
 DCTheader *dctheader;
+HTable *htable;
 
 std::ifstream open_image(std::filesystem::path p);
 uint8_t find_marker(std::ifstream *image);
@@ -115,7 +116,7 @@ int main(){
                 break;
             case 0xC4:
                 std::cout << "Huffman found\n";
-                qtable = read_QTable(&image);
+                htable = read_HTable(&image);
                 //Read and Store one or more Huffman tables
                 break;
             case 0xDD:
@@ -201,21 +202,7 @@ JFIF_header *read_header(std::ifstream *image){
 }
 
 QTable *read_QTable(std::ifstream *image){
-	uint16_t Length = cur_byte;
-	image->read(reinterpret_cast<char*>(&cur_byte), 1);
-	Length = (Length << 8) + cur_byte;
-
-    image->read(reinterpret_cast<char*>(&cur_byte), 1);
-    uint8_t Type = (cur_byte >> 4) & 0xF;
-    uint8_t Table_ID = cur_byte & 0xF;
-
-    uint8_t H_codes[16];
-    image->read(reinterpret_cast<char*>(H_codes), 16);
-
-    uint8_t *Symbol_array = new uint8_t [Length - 19];
-    image->read(reinterpret_cast<char*>(Symbol_array), (std::streamsize) Length - 19);
-
-    return new QTable(Length, Type, Table_ID, H_codes, Symbol_array);
+	
 }
 
 DCTheader *read_DCTheader(std::ifstream *image){
@@ -254,11 +241,25 @@ DCTheader *read_DCTheader(std::ifstream *image){
 }
 
 DCTable *read_DCTable(std::ifstream *image, bool ProgressiveDCTable){
-
+    
 }
 
 HTable *read_HTable(std::ifstream *image){
+    uint16_t Length = cur_byte;
+	image->read(reinterpret_cast<char*>(&cur_byte), 1);
+	Length = (Length << 8) + cur_byte;
 
+    image->read(reinterpret_cast<char*>(&cur_byte), 1);
+    uint8_t Type = (cur_byte >> 4) & 0xF;
+    uint8_t Table_ID = cur_byte & 0xF;
+
+    uint8_t H_codes[16];
+    image->read(reinterpret_cast<char*>(H_codes), 16);
+
+    uint8_t *Symbol_array = new uint8_t [Length - 19];
+    image->read(reinterpret_cast<char*>(Symbol_array), (std::streamsize) Length - 19);
+
+    return new HTable(Length, Type, Table_ID, H_codes, Symbol_array);
 }
 
 void *read_comment(std::ifstream *image){
