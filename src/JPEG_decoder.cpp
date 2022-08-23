@@ -141,6 +141,7 @@ int main(){
                  specifies which slice of data it will contain,
                  and is immediately followed by entropy-coded data. 
                 */
+                
                 break;
             /*
             case 0xDn: //n from 0 to 7
@@ -193,11 +194,9 @@ JFIF_header *read_header(std::ifstream *image){
     image->read(reinterpret_cast<char*>(&cur_byte), 1);
     Length = (Length << 8) + cur_byte;
     
-    char *header = new char[Length - 1];
-    for(int i = 0; i < Length - 1; i++){
-        image->read(reinterpret_cast<char*>(&cur_byte), 1);
-        header[i] = cur_byte;
-    }
+    uint8_t *header = new uint8_t[Length - 2];
+    image->read(reinterpret_cast<char*>(header), Length - 2);
+
     uint64_t Identfier = 0;
     for(int i = 0; i < 5; i++)
         Identfier = (Identfier << 8) + *((uint8_t *) header + i);
