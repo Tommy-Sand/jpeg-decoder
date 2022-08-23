@@ -129,8 +129,6 @@ int main(){
                 break;
         }
     }
-    if(cur_marker == 0xD9)
-        printf("Position = %llu\nCur_marker = %d\n", position, cur_marker);
 }
 
 std::ifstream open_image(std::filesystem::path p){
@@ -142,11 +140,9 @@ uint8_t find_marker(std::ifstream *image){
     while(image->peek() != EOF){
         if(cur_byte != 0xff){
             image->read(reinterpret_cast<char*>(&cur_byte), 1);
-            position++;
         }
         else{
             image->read(reinterpret_cast<char*>(&cur_byte), 1);
-            position++;
             if(cur_byte != 0x00){
                 cur_marker = cur_byte;
                 image->read(reinterpret_cast<char*>(&cur_byte), 1);
