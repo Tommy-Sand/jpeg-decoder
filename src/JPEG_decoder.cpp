@@ -47,7 +47,14 @@ public:
 };
 
 class QTable{
+public:
+    QTable(uint16_t Length, uint8_t Size, uint8_t ID, uint16_t *Quant_table)
+    : length{Length}, size{Size}, id{ID}, quant_table{Quant_table} {}
 
+    uint16_t length;
+    uint8_t size;
+    uint8_t id;
+    uint16_t *quant_table;
 };
 
 class DCTable{
@@ -104,6 +111,7 @@ int main(){
             case 0xDB:
                 //Read and Store Quantization Table
                 std::cout << "Quantized table found\n";
+                qtable = read_QTable(&image);
                 break;
             case 0xC0:
                 std::cout << "BaseLine DCT found\n";
@@ -207,7 +215,29 @@ JFIF_header *read_header(std::ifstream *image){
 }
 
 QTable *read_QTable(std::ifstream *image){
-	
+	uint16_t Length = cur_byte;
+    image->read(reinterpret_cast<char*>(&cur_byte), 1);
+    Length = (Length << 8) + cur_byte;
+
+    image->read(reinterpret_cast<char*>(&cur_byte), 1);
+    uint8_t Size = (cur_byte >> 4) & 0xF;
+    uint8_t ID = cur_byte & 0xF;
+
+    uint16_t *quant_table = new uint16_t[64];
+    if(Size == 2){
+        for(int i = 0; i < 64; i++){
+            image->read(reinterpret_cast<char*>(&cur_byte), 1);
+            quant_table[i] = cur_byte;
+            image->read(reinterpret_cast<char*>(&cur_byte), 1);
+            quant_table[i] = (quant_table[i] << 8) + cur_byte;
+        }
+    }
+    else if(Size == 1)
+        for(int i = 0; i < 64; i++){
+            image->read(reinterpret_cast<char*>(&cur_byte), 1);
+            quant_table[i] = cur_byte;
+        }
+    return new QTable(Length, Size, ID, quant_table);
 }
 
 DCTheader *read_DCTheader(std::ifstream *image){
