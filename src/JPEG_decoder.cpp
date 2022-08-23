@@ -160,6 +160,7 @@ int main(){
             */
             case 0xFE:
                 std::cout << "Comment found\n";
+                read_comment(&image);
                 //contains a comment
                 break;
         }
@@ -297,5 +298,16 @@ HTable *read_HTable(std::ifstream *image){
 }
 
 void *read_comment(std::ifstream *image){
-    
+    uint16_t Length = cur_byte;
+    image->read(reinterpret_cast<char*>(&cur_byte), 1);
+    Length = (Length << 8) + cur_byte;
+
+    char *comment = new char[Length - 1];
+    image->read(comment, Length - 2);
+    comment[Length - 2] = '\0';
+
+    std::cout << comment << "\n";
+
+    free(comment);
+    return 0;
 }
