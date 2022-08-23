@@ -26,6 +26,26 @@ public:
     std::vector<std::vector<std::vector<uint8_t>>> thumb;
 };
 
+class Channel_info{
+public:
+    uint8_t identifier;
+    uint8_t horz_sampling;
+    uint8_t vert_sampling;
+    uint8_t qtableID;
+};
+
+class DCTheader{
+public:
+    DCTheader(uint16_t Length, uint8_t Sample_percision, uint16_t Height, uint16_t Width, uint8_t Num_chans, Channel_info *Chan_infos)
+    : length{Length}, sample_percision{Sample_percision}, height{Height}, width{Width}, num_chans{Num_chans}, chan_infos{Chan_infos} {}
+    uint16_t length;
+    uint8_t sample_percision;
+    uint16_t height;
+    uint16_t width;
+    uint8_t num_chans;
+    Channel_info *chan_infos;
+};
+
 class QTable{
 public:
     QTable(uint16_t Length, uint8_t Type, uint8_t Table_ID, uint8_t H_codes[16], uint8_t *Symbol_array):
@@ -49,13 +69,15 @@ class HTable{
 };
 
 JFIF_header *header;
-QTable *qtable; 
+QTable *qtable;
+DCTheader *dctheader;
 
 std::ifstream open_image(std::filesystem::path p);
 uint8_t find_marker(std::ifstream *image);
 JFIF_header *read_header(std::ifstream *image);
 QTable *read_QTable(std::ifstream *image);
 DCTable *read_DCTable(std::ifstream *image, bool ProgressiveDCTable);
+DCTheader *read_DCTheader(std::ifstream *image);
 HTable *read_HTable(std::ifstream *image);
 void *read_comment(std::ifstream *image);
 
@@ -85,6 +107,7 @@ int main(){
             case 0xC0:
                 std::cout << "BaseLine DCT found\n";
                 //Read and Store Baseline DCT
+                dctheader = read_DCTheader(&image);
                 break;
             case 0xC2:
                 std::cout << "Progressive DCT found\n";
@@ -92,7 +115,6 @@ int main(){
                 break;
             case 0xC4:
                 std::cout << "Huffman found\n";
-
                 qtable = read_QTable(&image);
                 //Read and Store one or more Huffman tables
                 break;
@@ -158,12 +180,12 @@ uint8_t find_marker(std::ifstream *image){
 }
 
 JFIF_header *read_header(std::ifstream *image){
-    uint16_t length = cur_byte;
+    uint16_t Length = cur_byte;
     image->read(reinterpret_cast<char*>(&cur_byte), 1);
-    length = (length << 8) + cur_byte;
+    Length = (Length << 8) + cur_byte;
     
-    char *header = new char[length - 1];
-    image->read(reinterpret_cast<char*>(header), (std::streamsize) length);
+    char *header = new char[Length - 1];
+    image->read(reinterpret_cast<char*>(header), (std::streamsize) Length);
     uint64_t Identfier = 0;
     for(int i = 0; i < 5; i++)
         Identfier = (Identfier << 8) + *((uint8_t *) header + i);
@@ -175,7 +197,7 @@ JFIF_header *read_header(std::ifstream *image){
     uint8_t Xthumbnail = *((uint8_t *) header + 12);
     uint8_t Ythumbnail = *((uint8_t *) header + 13);
 
-    return new JFIF_header(length, Identfier, JFIF_Version, Density_Units, Xdensity, Ydensity, Xthumbnail, Ythumbnail);
+    return new JFIF_header(Length, Identfier, JFIF_Version, Density_Units, Xdensity, Ydensity, Xthumbnail, Ythumbnail);
 }
 
 QTable *read_QTable(std::ifstream *image){
@@ -194,6 +216,41 @@ QTable *read_QTable(std::ifstream *image){
     image->read(reinterpret_cast<char*>(Symbol_array), (std::streamsize) Length - 19);
 
     return new QTable(Length, Type, Table_ID, H_codes, Symbol_array);
+}
+
+DCTheader *read_DCTheader(std::ifstream *image){
+    uint16_t Length = cur_byte;
+    image->read(reinterpret_cast<char*>(&cur_byte), 1);
+    Length = (Length << 8) + cur_byte;
+    
+    image->read(reinterpret_cast<char*>(&cur_byte), 1);
+    uint8_t Sample_percision = cur_byte;
+
+    image->read(reinterpret_cast<char*>(&cur_byte), 1);
+    uint16_t Height = cur_byte;
+    image->read(reinterpret_cast<char*>(&cur_byte), 1);
+    Height = (Height << 8) + cur_byte;
+
+    image->read(reinterpret_cast<char*>(&cur_byte), 1);
+    uint16_t Width = cur_byte;
+    image->read(reinterpret_cast<char*>(&cur_byte), 1);
+    Width = (Width << 8) + cur_byte;
+
+    image->read(reinterpret_cast<char*>(&cur_byte), 1);
+    uint8_t Num_chans = cur_byte;
+
+    Channel_info *Channel_infos = new Channel_info[Num_chans];
+    for(uint8_t i = 0; i < Num_chans; i++){
+        image->read(reinterpret_cast<char*>(&cur_byte), 1);
+        Channel_infos[i].identifier = cur_byte;
+        image->read(reinterpret_cast<char*>(&cur_byte), 1);
+        Channel_infos[i].horz_sampling = (cur_byte >> 4) & 0xF;
+        Channel_infos[i].vert_sampling = (cur_byte & 0xF);
+        image->read(reinterpret_cast<char*>(&cur_byte), 1);
+        Channel_infos[i].qtableID = cur_byte;
+    }
+
+    return new DCTheader(Length, Sample_percision, Height, Width, Num_chans, Channel_infos);
 }
 
 DCTable *read_DCTable(std::ifstream *image, bool ProgressiveDCTable){
