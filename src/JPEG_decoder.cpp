@@ -186,7 +186,10 @@ JFIF_header *read_header(std::ifstream *image){
     Length = (Length << 8) + cur_byte;
     
     char *header = new char[Length - 1];
-    image->read(reinterpret_cast<char*>(header), (std::streamsize) Length);
+    for(int i = 0; i < Length - 1; i++){
+        image->read(reinterpret_cast<char*>(&cur_byte), 1);
+        header[i] = cur_byte;
+    }
     uint64_t Identfier = 0;
     for(int i = 0; i < 5; i++)
         Identfier = (Identfier << 8) + *((uint8_t *) header + i);
@@ -197,6 +200,8 @@ JFIF_header *read_header(std::ifstream *image){
     uint8_t Density_Units = *((uint8_t *) header + 7);
     uint8_t Xthumbnail = *((uint8_t *) header + 12);
     uint8_t Ythumbnail = *((uint8_t *) header + 13);
+
+    free(header);
 
     return new JFIF_header(Length, Identfier, JFIF_Version, Density_Units, Xdensity, Ydensity, Xthumbnail, Ythumbnail);
 }
