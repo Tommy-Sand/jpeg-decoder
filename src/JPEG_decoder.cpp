@@ -49,6 +49,7 @@ class HTable{
 };
 
 JFIF_header *header;
+QTable *qtable; 
 
 std::ifstream open_image(std::filesystem::path p);
 uint8_t find_marker(std::ifstream *image);
@@ -78,8 +79,8 @@ int main(){
                 header = read_header(&image);
                 break;
             case 0xDB:
-                std::cout << "Quantized table found\n";
                 //Read and Store Quantization Table
+                std::cout << "Quantized table found\n";
                 break;
             case 0xC0:
                 std::cout << "BaseLine DCT found\n";
@@ -91,6 +92,8 @@ int main(){
                 break;
             case 0xC4:
                 std::cout << "Huffman found\n";
+
+                qtable = read_QTable(&image);
                 //Read and Store one or more Huffman tables
                 break;
             case 0xDD:
@@ -160,7 +163,7 @@ JFIF_header *read_header(std::ifstream *image){
     length = (length << 8) + cur_byte;
     
     char *header = new char[length - 1];
-    image->read(header, (std::streamsize) length);
+    image->read(reinterpret_cast<char*>(header), (std::streamsize) length);
     uint64_t Identfier = 0;
     for(int i = 0; i < 5; i++)
         Identfier = (Identfier << 8) + *((uint8_t *) header + i);
@@ -176,7 +179,21 @@ JFIF_header *read_header(std::ifstream *image){
 }
 
 QTable *read_QTable(std::ifstream *image){
+	uint16_t Length = cur_byte;
+	image->read(reinterpret_cast<char*>(&cur_byte), 1);
+	Length = (Length << 8) + cur_byte;
 
+    image->read(reinterpret_cast<char*>(&cur_byte), 1);
+    uint8_t Type = (cur_byte >> 4) & 0xF;
+    uint8_t Table_ID = cur_byte & 0xF;
+
+    uint8_t H_codes[16];
+    image->read(reinterpret_cast<char*>(H_codes), 16);
+
+    uint8_t *Symbol_array = new uint8_t [Length - 19];
+    image->read(reinterpret_cast<char*>(Symbol_array), (std::streamsize) Length - 19);
+
+    return new QTable(Length, Type, Table_ID, H_codes, Symbol_array);
 }
 
 DCTable *read_DCTable(std::ifstream *image, bool ProgressiveDCTable){
