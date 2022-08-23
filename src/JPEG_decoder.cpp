@@ -220,7 +220,7 @@ QTable *read_QTable(std::ifstream *image){
     Length = (Length << 8) + cur_byte;
 
     image->read(reinterpret_cast<char*>(&cur_byte), 1);
-    uint8_t Size = (cur_byte >> 4) & 0xF;
+    uint8_t Size = ((cur_byte >> 4) & 0xF) + 1;
     uint8_t ID = cur_byte & 0xF;
 
     uint16_t *quant_table = new uint16_t[64];
