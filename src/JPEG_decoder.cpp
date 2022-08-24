@@ -87,7 +87,7 @@ QTable *read_QTable(std::ifstream *image);
 DCTable *read_DCTable(std::ifstream *image, bool ProgressiveDCTable);
 DCTheader *read_DCTheader(std::ifstream *image);
 HTable *read_HTable(std::ifstream *image);
-void *read_comment(std::ifstream *image);
+void read_comment(std::ifstream *image);
 
 int main(){
     std::filesystem::path p = "..\\example\\cat.jpg";
@@ -297,7 +297,7 @@ HTable *read_HTable(std::ifstream *image){
     return new HTable(Length, Type, Table_ID, H_codes, Symbol_array);
 }
 
-void *read_comment(std::ifstream *image){
+void read_comment(std::ifstream *image){
     uint16_t Length = cur_byte;
     image->read(reinterpret_cast<char*>(&cur_byte), 1);
     Length = (Length << 8) + cur_byte;
@@ -309,5 +309,4 @@ void *read_comment(std::ifstream *image){
     std::cout << comment << "\n";
 
     free(comment);
-    return 0;
 }
