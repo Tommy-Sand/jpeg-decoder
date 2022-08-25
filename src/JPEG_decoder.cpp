@@ -91,6 +91,7 @@ JFIF_header *header;
 QTable *qtable;
 DCTheader *dctheader;
 HTable *htable;
+Scan_header *scanheader;
 
 std::ifstream open_image(std::filesystem::path p);
 uint8_t find_marker(std::ifstream *image);
@@ -102,6 +103,7 @@ HTable *read_HTable(std::ifstream *image);
 void interpret_HTable(uint8_t Hcodes_lengths[], uint8_t*Coded_symbol_array, std::vector<uint8_t> *Symbol_array);
 void create_max_min_symbols(int16_t min_symbol[16],int16_t max_symbol[16], std::vector<uint8_t> *Symbol_array);
 void read_comment(std::ifstream *image);
+Scan_header *read_Scan_header(std::ifstream *image)
 
 int main(){
     std::filesystem::path p = "..\\example\\cat.jpg";
@@ -124,29 +126,34 @@ int main(){
                 break;
             case 0xDB:
                 //Read and Store Quantization Table
+                
                 std::cout << "Quantized table found\n";
                 qtable = read_QTable(&image);
                 break;
             case 0xC0:
-                std::cout << "BaseLine DCT found\n";
                 //Read and Store Baseline DCT
+
+                std::cout << "BaseLine DCT found\n";
                 dctheader = read_DCTheader(&image);
                 break;
             case 0xC2:
-                std::cout << "Progressive DCT found\n";
                 //Read and Store Progressive DCT
+
+                std::cout << "Progressive DCT found\n";
                 break;
             case 0xC4:
+                //Read and Store one or more Huffman tables
+
                 std::cout << "Huffman found\n";
                 htable = read_HTable(&image);
                 //Read and Store one or more Huffman tables
                 break;
             case 0xDD:
-                std::cout << "Restart found\n";
                 //Defines Restart Interval
+
+                std::cout << "Restart found\n";
                 break;
             case 0xDA:
-                std::cout << "Scan of the image found\n";
                 //Top to Bottom Scan of the image
                 /* Begins a top-to-bottom scan of the image.
                  In baseline DCT JPEG images, there is generally
@@ -156,26 +163,21 @@ int main(){
                  and is immediately followed by entropy-coded data. 
                 */
                 
+                std::cout << "Scan of the image found\n";
+                scanheader = read_Scan_header(&image);
+                
                 break;
             /*
-            case 0xDn: //n from 0 to 7
-                //Restart
-                
-                Inserted every r macroblocks, where r is the restart
-                interval set by a DRI marker. Not used if there was 
-                no DRI marker. The low three bits of the marker code
-                cycle in value from 0 to 7.
-                
-                break;
-            
             case 0xEn: //For Application specific header that are not 0xE0
 
                 break;
             */
             case 0xFE:
+                //contains a comment
+
                 std::cout << "Comment found\n";
                 read_comment(&image);
-                //contains a comment
+                
                 break;
         }
     }
