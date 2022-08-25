@@ -57,9 +57,22 @@ public:
     uint16_t *quant_table;
 };
 
-class DCTable{
+class Chan_specifier{
+public:
+    uint8_t componentID;
+    uint8_t Huffman_DC;
+    uint8_t Huffman_AC;
+}
 
-};
+class Scan_header{
+public:
+    uint16_t length;
+    uint8_t num_chans;
+    Chan_specifier *chan_specs;
+    uint8_t Spectral_start;
+    uint8_t Spectral_end;
+    uint8_t Successive_approx;
+}
 
 class HTable{
 public:
@@ -276,8 +289,15 @@ DCTheader *read_DCTheader(std::ifstream *image){
     return new DCTheader(Length, Sample_percision, Height, Width, Num_chans, Channel_infos);
 }
 
-DCTable *read_DCTable(std::ifstream *image, bool ProgressiveDCTable){
-    
+Scan_header *read_Scan_header(std::ifstream *image){
+    uint16_t Length = cur_byte;
+    image->read(reinterpret_cast<char*>(&cur_byte), 1);
+    Length = (Length << 8) + cur_byte;
+
+    uint8_t *Header = new uint8_t[Length - 2];
+    image->read(reinterpret_cast<char*>(Header), Length - 2);
+
+    return new Scan_header();
 }
 
 HTable *read_HTable(std::ifstream *image){
