@@ -63,16 +63,15 @@ class DCTable{
 
 class HTable{
 public:
-    HTable(uint16_t Length, uint8_t Type, uint8_t Table_ID, uint8_t H_codes[16], uint8_t *Symbol_array):
-    length{Length}, type{Type}, table_ID{Table_ID}, symbol_array{Symbol_array} {
-        std::memcpy(h_codes, H_codes, 16);
-    }
+    HTable(uint16_t Length, uint8_t Type, uint8_t Table_ID, int16_t *Min_symbol, int16_t *Max_symbol, std::vector<uint8_t> *Symbol_array):
+    length{Length}, type{Type}, table_ID{Table_ID}, min_symbol{Min_symbol}, max_symbol{Max_symbol}, symbol_array{Symbol_array} {}
 
     uint16_t length;
     uint8_t type;
     uint8_t table_ID;
-    uint8_t h_codes[16];
-    uint8_t *symbol_array;
+    int16_t *min_symbol;
+    int16_t *max_symbol;
+    std::vector<uint8_t> *symbol_array;
 };
 
 JFIF_header *header;
@@ -87,6 +86,8 @@ QTable *read_QTable(std::ifstream *image);
 DCTable *read_DCTable(std::ifstream *image, bool ProgressiveDCTable);
 DCTheader *read_DCTheader(std::ifstream *image);
 HTable *read_HTable(std::ifstream *image);
+void interpret_HTable(uint8_t Hcodes_lengths[], uint8_t*Coded_symbol_array, std::vector<uint8_t> *Symbol_array);
+void create_max_min_symbols(int16_t min_symbol[16],int16_t max_symbol[16], std::vector<uint8_t> *Symbol_array);
 void read_comment(std::ifstream *image);
 
 int main(){
@@ -288,13 +289,56 @@ HTable *read_HTable(std::ifstream *image){
     uint8_t Type = (cur_byte >> 4) & 0xF;
     uint8_t Table_ID = cur_byte & 0xF;
 
-    uint8_t H_codes[16];
-    image->read(reinterpret_cast<char*>(H_codes), 16);
+    uint8_t Hcodes_lengths[16];
+    image->read(reinterpret_cast<char*>(Hcodes_lengths), 16);
 
-    uint8_t *Symbol_array = new uint8_t [Length - 19];
-    image->read(reinterpret_cast<char*>(Symbol_array), (std::streamsize) Length - 19);
+    uint8_t *Coded_symbol_array = new uint8_t [Length - 19];
+    image->read(reinterpret_cast<char*>(Coded_symbol_array), (std::streamsize) Length - 19);
 
-    return new HTable(Length, Type, Table_ID, H_codes, Symbol_array);
+    std::vector<uint8_t> *Symbol_array = new std::vector<uint8_t>[16];  
+    interpret_HTable(Hcodes_lengths, Coded_symbol_array, Symbol_array);
+
+    int16_t *Min_symbol = new int16_t[16];
+    int16_t *Max_symbol = new int16_t[16];
+    create_max_min_symbols(Min_symbol, Max_symbol, Symbol_array);
+
+    free(Coded_symbol_array);
+    return new HTable(Length, Type, Table_ID, Min_symbol, Max_symbol, Symbol_array);
+}
+
+void interpret_HTable(uint8_t Hcodes_lengths[16], uint8_t *Coded_symbol_array, std::vector<uint8_t> *Symbol_array){
+    uint8_t Coded_symbol_count = 0;
+    for(int i = 0; i < 16; i++){
+        for(int j = 0; j < Hcodes_lengths[i]; j++){
+            Symbol_array[i].push_back(Coded_symbol_array[Coded_symbol_count++]);
+        }
+    }
+}
+
+void create_max_min_symbols(int16_t min_symbol[16],int16_t max_symbol[16], std::vector<uint8_t> *Symbol_array){
+    int last_non_zero_length = -1;
+    while(Symbol_array[++last_non_zero_length].size() == 0){
+        min_symbol[last_non_zero_length] = -1;
+        max_symbol[last_non_zero_length] = -1;
+    }
+
+    min_symbol[last_non_zero_length] = 0;
+    max_symbol[last_non_zero_length] = Symbol_array[last_non_zero_length].size() - 1;
+
+    for(int i = last_non_zero_length+1; i < 16; i++){
+        if(Symbol_array[i].size() > 0){
+            min_symbol[i] = (max_symbol[last_non_zero_length] << 1) + 1;
+            if(Symbol_array[i].size() > 1)
+                max_symbol[i] = min_symbol[i] + Symbol_array[i].size();
+            else
+                max_symbol[i] = min_symbol[i] + Symbol_array[i].size() - 1;
+            last_non_zero_length = i;
+        }
+        else{
+            min_symbol[i] = -1;
+            max_symbol[i] = -1;
+        }
+    }
 }
 
 void read_comment(std::ifstream *image){
