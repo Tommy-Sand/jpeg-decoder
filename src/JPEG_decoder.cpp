@@ -109,7 +109,7 @@ Scan_header *read_Scan_header(std::ifstream *image);
 int decode_DC_coefficient(std::ifstream *image, HTable *htable);
 
 int main(){
-    std::filesystem::path p = "..\\example\\cat.jpg";
+    std::filesystem::path p = "..\\example\\Untitled.jpg";
     std::ifstream image = open_image(p);
     
     image.read(reinterpret_cast<char*>(&cur_byte), 1);
