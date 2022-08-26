@@ -62,7 +62,7 @@ public:
     uint8_t componentID;
     uint8_t Huffman_DC;
     uint8_t Huffman_AC;
-}
+};
 
 class Scan_header{
 public:
@@ -72,7 +72,7 @@ public:
     uint8_t Spectral_start;
     uint8_t Spectral_end;
     uint8_t Successive_approx;
-}
+};
 
 class HTable{
 public:
@@ -97,7 +97,6 @@ std::ifstream open_image(std::filesystem::path p);
 uint8_t find_marker(std::ifstream *image);
 JFIF_header *read_header(std::ifstream *image);
 QTable *read_QTable(std::ifstream *image);
-DCTable *read_DCTable(std::ifstream *image, bool ProgressiveDCTable);
 DCTheader *read_DCTheader(std::ifstream *image);
 HTable *read_HTable(std::ifstream *image);
 void interpret_HTable(uint8_t Hcodes_lengths[], uint8_t*Coded_symbol_array, std::vector<uint8_t> *Symbol_array);
