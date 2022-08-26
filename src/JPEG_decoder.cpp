@@ -90,6 +90,7 @@ public:
 JFIF_header *header;
 QTable *qtable;
 DCTheader *dctheader;
+std::vector<HTable *> htables;
 HTable *htable;
 Scan_header *scanheader;
 
@@ -145,7 +146,26 @@ int main(){
 
                 std::cout << "Huffman found\n";
                 htable = read_HTable(&image);
-                //Read and Store one or more Huffman tables
+                htables.push_back(htable);
+                
+                
+                /* For debugging purposes
+                std::cout << "Length " << (int) htable->length << "\n";
+                std::cout << "Type " << (int) htable->type << "\n";
+                std::cout << "TableID " << (int) htable->table_ID << "\n";
+                
+                for(int i = 0; i < 16; i++){
+                    std::cout << "bit length " << std::hex <<  i+1 << " Min Symbol Code: " <<  (int) htable->min_symbol[i] <<" Max Symbol Code: " <<  (int) htable->max_symbol[i] << "\n";
+
+                    std::cout << "Symbols: \n";
+                    
+                    for(int j = 0; j < htable->symbol_array[i].size(); j++){
+                            std::cout << (int) htable->symbol_array[i][j] << " ";
+                    }
+                    
+                    std::cout << "\n";
+                }
+                */
                 break;
             case 0xDD:
                 //Defines Restart Interval
@@ -348,11 +368,8 @@ void create_max_min_symbols(int16_t min_symbol[16],int16_t max_symbol[16], std::
 
     for(int i = last_non_zero_length+1; i < 16; i++){
         if(Symbol_array[i].size() > 0){
-            min_symbol[i] = (max_symbol[last_non_zero_length] << 1) + 1;
-            if(Symbol_array[i].size() > 1)
-                max_symbol[i] = min_symbol[i] + Symbol_array[i].size();
-            else
-                max_symbol[i] = min_symbol[i] + Symbol_array[i].size() - 1;
+            min_symbol[i] = (max_symbol[last_non_zero_length] + 1) << 1;
+            max_symbol[i] = min_symbol[i] + Symbol_array[i].size() - 1;
             last_non_zero_length = i;
         }
         else{
