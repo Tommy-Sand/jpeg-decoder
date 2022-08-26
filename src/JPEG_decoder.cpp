@@ -9,6 +9,8 @@
 
 uint8_t cur_byte;
 uint8_t cur_marker;
+int8_t pos;
+
 class JFIF_header{
 public:
     JFIF_header(uint16_t Length, uint64_t Identfier, uint16_t JFIF_Version, uint8_t Dens_units, uint16_t Xdens, uint16_t Ydens, uint8_t Xthumbnail, uint8_t Ythumbnail)
@@ -103,7 +105,8 @@ HTable *read_HTable(std::ifstream *image);
 void interpret_HTable(uint8_t Hcodes_lengths[], uint8_t*Coded_symbol_array, std::vector<uint8_t> *Symbol_array);
 void create_max_min_symbols(int16_t min_symbol[16],int16_t max_symbol[16], std::vector<uint8_t> *Symbol_array);
 void read_comment(std::ifstream *image);
-Scan_header *read_Scan_header(std::ifstream *image)
+Scan_header *read_Scan_header(std::ifstream *image);
+int decode_DC_coefficient(std::ifstream *image, HTable *htable);
 
 int main(){
     std::filesystem::path p = "..\\example\\cat.jpg";
@@ -391,4 +394,49 @@ void read_comment(std::ifstream *image){
     std::cout << comment << "\n";
 
     free(comment);
+}
+
+int decode_DC_coefficient(std::ifstream *image, HTable *htable){
+    uint16_t Size = 0;
+    uint8_t Size_read = 0;
+    int16_t Value = 0;
+
+    pos = 7;
+    while(!image->eof() && Size_read < 12){
+        Size = (Size << 1) + ((cur_byte >> pos--) & 1);
+        Size_read++;
+        if(pos < 0){
+            image->read(reinterpret_cast<char*>(&cur_byte), 1);
+            pos = 7;
+        }
+        if(Size >= htable->min_symbol[Size_read - 1] && Size <= htable->max_symbol[Size_read - 1]){
+            bool Found = false;
+            for(uint8_t i = 0; i < htable->symbol_array[Size_read - 1].size(); i++){
+                if(Size == htable->min_symbol[Size_read - 1] + i)
+                    Size = htable->symbol_array[Size_read - 1][i];
+                    Found = true;
+                    break;
+            }
+            if(Found) break;
+        }
+    }
+    
+    uint8_t i = 0;
+    while(!image->eof() && i++ < Size){
+        if(pos < 0){
+            image->read(reinterpret_cast<char*>(&cur_byte), 1);
+            pos = 7;
+        }
+        Value = (Value << 1) + ((cur_byte >> pos--) & 1);
+    }
+
+    //Check sign
+    //Make negative if sign bit is 0
+    //Else keep positive
+    int8_t Sign = -1;
+    if((Value >> (Size - 1)) & 1)
+        int8_t Sign = 1;
+    Value = Sign * Value;
+
+    return Value;
 }
