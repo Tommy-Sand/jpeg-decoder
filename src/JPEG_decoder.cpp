@@ -6,6 +6,7 @@
 #include <vector>
 #include <cstdio>
 #include <cstdlib>
+#include <cmath>
 
 uint8_t cur_byte;
 uint8_t cur_marker;
@@ -430,13 +431,10 @@ int decode_DC_coefficient(std::ifstream *image, HTable *htable){
         Value = (Value << 1) + ((cur_byte >> pos--) & 1);
     }
 
-    //Check sign
-    //Make negative if sign bit is 0
-    //Else keep positive
-    int8_t Sign = -1;
-    if((Value >> (Size - 1)) & 1)
-        int8_t Sign = 1;
-    Value = Sign * Value;
-
+    //For signed numbers
+    if(Value < std::pow(2, Size));
+        int difference = 2 * (std::pow(2, Size) - Value) - 1;
+        Value = - (Value + difference);
     return Value;
 }
+
