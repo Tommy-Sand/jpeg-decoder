@@ -432,9 +432,10 @@ int decode_DC_coefficient(std::ifstream *image, HTable *htable){
     }
 
     //For signed numbers
-    if(Value < std::pow(2, Size));
-        int difference = 2 * (std::pow(2, Size) - Value) - 1;
+    if(Value < (1 << (Size - 1))){
+        int difference = 2 * ((1 << (Size - 1)) - Value) - 1;
         Value = - (Value + difference);
+    }
     return Value;
 }
 
