@@ -9,7 +9,7 @@
 
 uint8_t cur_byte;
 uint8_t cur_marker;
-int8_t pos;
+int8_t pos = 7;
 
 class JFIF_header{
 public:
