@@ -6,7 +6,6 @@
 #include <vector>
 #include <cstdio>
 #include <cstdlib>
-#include <cmath>
 
 uint8_t cur_byte;
 uint8_t cur_marker;
