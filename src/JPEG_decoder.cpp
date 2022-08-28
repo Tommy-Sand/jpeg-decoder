@@ -89,6 +89,16 @@ public:
     std::vector<uint8_t> *symbol_array;
 };
 
+class AC_coefficient{
+public:
+    AC_coefficient(bool EOB, uint8_t Run_length, int Value)
+    :EOB{EOB}, run_length{Run_length}, value{Value} {}
+
+    bool EOB;
+    uint8_t run_length;
+    int value;
+};
+
 JFIF_header *header;
 QTable *qtable;
 DCTheader *dctheader;
@@ -107,6 +117,7 @@ void create_max_min_symbols(int16_t min_symbol[16],int16_t max_symbol[16], std::
 void read_comment(std::ifstream *image);
 Scan_header *read_Scan_header(std::ifstream *image);
 int decode_DC_coefficient(std::ifstream *image, HTable *htable);
+AC_coefficient *decode_AC_coefficient(std::ifstream *image, HTable *htable);
 
 int main(){
     std::filesystem::path p = "..\\example\\Untitled.jpg";
@@ -439,3 +450,50 @@ int decode_DC_coefficient(std::ifstream *image, HTable *htable){
     return Value;
 }
 
+AC_coefficient *decode_AC_coefficient(std::ifstream *image, HTable *htable){
+    uint16_t RLength_or_Size = 0;
+    uint8_t RLength_or_Size_read = 0;
+    int16_t Value = 0;
+
+    while(!image->eof() && RLength_or_Size_read < 12){
+        if(pos < 0){
+            image->read(reinterpret_cast<char*>(&cur_byte), 1);
+            pos = 7;
+        }
+        RLength_or_Size = (RLength_or_Size << 1) + ((cur_byte >> pos--) & 1);
+        RLength_or_Size_read++;
+        if(RLength_or_Size >= htable->min_symbol[RLength_or_Size_read - 1] && RLength_or_Size <= htable->max_symbol[RLength_or_Size_read - 1]){
+            bool Found = false;
+            for(uint8_t i = 0; i < htable->symbol_array[RLength_or_Size_read - 1].size(); i++){
+                if(RLength_or_Size == htable->min_symbol[RLength_or_Size_read - 1] + i){
+                    RLength_or_Size = htable->symbol_array[RLength_or_Size_read - 1][i];
+                    Found = true;
+                    break;
+                }
+            }
+            if(Found) break;
+        }
+    }
+    if(RLength_or_Size == 0)
+        return new AC_coefficient(true, 0, 0);
+
+    uint8_t Size = RLength_or_Size & 0xF;
+    uint8_t RLength = (RLength_or_Size >> 4) & 0xF;
+
+    uint8_t i = 0;
+    while(!image->eof() && i++ < Size){
+        if(pos < 0){
+            image->read(reinterpret_cast<char*>(&cur_byte), 1);
+            pos = 7;
+        }
+        Value = (Value << 1) + ((cur_byte >> pos--) & 1);
+    }
+
+    //For signed numbers
+    if(Value < (1 << (Size - 1))){
+        int difference = 2 * ((1 << (Size - 1)) - Value) - 1;
+        Value = - (Value + difference);
+    }
+
+    return new AC_coefficient(false, RLength, Value);
+}
