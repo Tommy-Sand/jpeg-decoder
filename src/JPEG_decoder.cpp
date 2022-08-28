@@ -401,21 +401,22 @@ int decode_DC_coefficient(std::ifstream *image, HTable *htable){
     uint8_t Size_read = 0;
     int16_t Value = 0;
 
-    pos = 7;
     while(!image->eof() && Size_read < 12){
-        Size = (Size << 1) + ((cur_byte >> pos--) & 1);
-        Size_read++;
         if(pos < 0){
             image->read(reinterpret_cast<char*>(&cur_byte), 1);
             pos = 7;
         }
+        Size = (Size << 1) + ((cur_byte >> pos--) & 1);
+        Size_read++;
+        
         if(Size >= htable->min_symbol[Size_read - 1] && Size <= htable->max_symbol[Size_read - 1]){
             bool Found = false;
             for(uint8_t i = 0; i < htable->symbol_array[Size_read - 1].size(); i++){
-                if(Size == htable->min_symbol[Size_read - 1] + i)
+                if(Size == htable->min_symbol[Size_read - 1] + i){
                     Size = htable->symbol_array[Size_read - 1][i];
                     Found = true;
                     break;
+                }
             }
             if(Found) break;
         }
