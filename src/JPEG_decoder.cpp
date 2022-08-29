@@ -10,6 +10,7 @@
 uint8_t cur_byte;
 uint8_t cur_marker;
 int8_t pos = 7;
+int8_t MCU;
 
 class JFIF_header{
 public:
@@ -113,6 +114,7 @@ uint8_t find_marker(std::ifstream *image);
 JFIF_header *read_header(std::ifstream *image);
 QTable *read_QTable(std::ifstream *image);
 DCTheader *read_DCTheader(std::ifstream *image);
+uint8_t calculate_MCU();
 HTable *read_HTable(std::ifstream *image);
 void interpret_HTable(uint8_t Hcodes_lengths[], uint8_t*Coded_symbol_array, std::vector<uint8_t> *Symbol_array);
 void create_max_min_symbols(int16_t min_symbol[16],int16_t max_symbol[16], std::vector<uint8_t> *Symbol_array);
@@ -122,15 +124,15 @@ int decode_DC_coefficient(std::ifstream *image, HTable *htable);
 AC_coefficient *decode_AC_coefficient(std::ifstream *image, HTable *htable);
 
 int main(){
-    std::filesystem::path p = "..\\example\\Untitled.jpg";
+    std::filesystem::path p = "..\\example\\cat.jpg";
     std::ifstream image = open_image(p);
-    
+
     image.read(reinterpret_cast<char*>(&cur_byte), 1);
     //Find start of image
     if((cur_marker = find_marker(&image)) != 0xD8){
         std::cout << "Jpeg not detected\n";
         return 1;
-    } 
+    }
 
     //Need to add more possible header formats such as TIFF
     //Currently only FIFF is supported
@@ -151,6 +153,8 @@ int main(){
 
                 std::cout << "BaseLine DCT found\n";
                 dctheader = read_DCTheader(&image);
+
+                std::cout << MCU;
                 break;
             case 0xC2:
                 //Read and Store Progressive DCT
@@ -170,19 +174,20 @@ int main(){
                 std::cout << "Length " << (int) htable->length << "\n";
                 std::cout << "Type " << (int) htable->type << "\n";
                 std::cout << "TableID " << (int) htable->table_ID << "\n";
-                
+
                 for(int i = 0; i < 16; i++){
                     std::cout << "bit length " << std::hex <<  i+1 << " Min Symbol Code: " <<  (int) htable->min_symbol[i] <<" Max Symbol Code: " <<  (int) htable->max_symbol[i] << "\n";
 
                     std::cout << "Symbols: \n";
-                    
+
                     for(int j = 0; j < htable->symbol_array[i].size(); j++){
                             std::cout << (int) htable->symbol_array[i][j] << " ";
                     }
-                    
+
                     std::cout << "\n";
                 }
                 */
+
                 break;
             case 0xDD:
                 //Defines Restart Interval
@@ -196,12 +201,28 @@ int main(){
                  a single scan. Progressive DCT JPEG images
                  usually contain multiple scans. This marker
                  specifies which slice of data it will contain,
-                 and is immediately followed by entropy-coded data. 
+                 and is immediately followed by entropy-coded data.
                 */
-                
+
                 std::cout << "Scan of the image found\n";
                 scanheader = read_Scan_header(&image);
-                
+
+                image.read(reinterpret_cast<char*>(&cur_byte), 1);
+                MCU = calculate_MCU();
+                /*
+                while not the end of scan
+                    Read the dc coefficient
+                    Read ac coefficients until you reach the end
+
+                */
+				/*
+                while(true){
+                    decode_DC_coefficient(&image, htables[0]);
+                    std::cout << "reading AC\n";
+                    if(!(decode_AC_coefficient(&image, htables[1])->EOB))
+                        break;
+                }
+				*/
                 break;
             /*
             case 0xEn: //For Application specific header that are not 0xE0
@@ -213,7 +234,7 @@ int main(){
 
                 std::cout << "Comment found\n";
                 read_comment(&image);
-                
+
                 break;
         }
     }
@@ -246,7 +267,7 @@ JFIF_header *read_header(std::ifstream *image){
     uint16_t Length = cur_byte;
     image->read(reinterpret_cast<char*>(&cur_byte), 1);
     Length = (Length << 8) + cur_byte;
-    
+
     uint8_t *header = new uint8_t[Length - 2];
     image->read(reinterpret_cast<char*>(header), Length - 2);
 
@@ -296,7 +317,7 @@ DCTheader *read_DCTheader(std::ifstream *image){
     uint16_t Length = cur_byte;
     image->read(reinterpret_cast<char*>(&cur_byte), 1);
     Length = (Length << 8) + cur_byte;
-    
+
     image->read(reinterpret_cast<char*>(&cur_byte), 1);
     uint8_t Sample_percision = cur_byte;
 
@@ -386,7 +407,7 @@ HTable *read_HTable(std::ifstream *image){
     uint8_t *Coded_symbol_array = new uint8_t [Length - 19];
     image->read(reinterpret_cast<char*>(Coded_symbol_array), (std::streamsize) Length - 19);
 
-    std::vector<uint8_t> *Symbol_array = new std::vector<uint8_t>[16];  
+    std::vector<uint8_t> *Symbol_array = new std::vector<uint8_t>[16];
     interpret_HTable(Hcodes_lengths, Coded_symbol_array, Symbol_array);
 
     int16_t *Min_symbol = new int16_t[16];
@@ -457,7 +478,7 @@ int decode_DC_coefficient(std::ifstream *image, HTable *htable){
         }
         Size = (Size << 1) + ((cur_byte >> pos--) & 1);
         Size_read++;
-        
+
         if(Size >= htable->min_symbol[Size_read - 1] && Size <= htable->max_symbol[Size_read - 1]){
             bool Found = false;
             for(uint8_t i = 0; i < htable->symbol_array[Size_read - 1].size(); i++){
@@ -470,7 +491,7 @@ int decode_DC_coefficient(std::ifstream *image, HTable *htable){
             if(Found) break;
         }
     }
-    
+
     uint8_t i = 0;
     while(!image->eof() && i++ < Size){
         if(pos < 0){
@@ -515,6 +536,7 @@ AC_coefficient *decode_AC_coefficient(std::ifstream *image, HTable *htable){
         }
     }
     if(RLength_or_Size == 0)
+        std::cout << "Nothing found" << std::endl;
         return new AC_coefficient(true, 0, 0);
 
     uint8_t Size = RLength_or_Size & 0xF;
@@ -534,6 +556,5 @@ AC_coefficient *decode_AC_coefficient(std::ifstream *image, HTable *htable){
         int difference = 2 * ((1 << (Size - 1)) - Value) - 1;
         Value = - (Value + difference);
     }
-
     return new AC_coefficient(false, RLength, Value);
 }
