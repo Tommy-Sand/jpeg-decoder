@@ -163,9 +163,10 @@ int main(){
                 std::cout << "Huffman found\n";
                 htable = read_HTable(&image);
                 htables.push_back(htable);
-                
-                
-                /* For debugging purposes
+
+
+                /*
+                //For debugging purposes
                 std::cout << "Length " << (int) htable->length << "\n";
                 std::cout << "Type " << (int) htable->type << "\n";
                 std::cout << "TableID " << (int) htable->table_ID << "\n";
