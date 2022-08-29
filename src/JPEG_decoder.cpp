@@ -449,6 +449,8 @@ int decode_DC_coefficient(std::ifstream *image, HTable *htable){
 
     while(!image->eof() && Size_read < 12){
         if(pos < 0){
+            if(cur_byte == 0xFF)
+                image->read(reinterpret_cast<char*>(&cur_byte), 1);
             image->read(reinterpret_cast<char*>(&cur_byte), 1);
             pos = 7;
         }
@@ -492,6 +494,8 @@ AC_coefficient *decode_AC_coefficient(std::ifstream *image, HTable *htable){
 
     while(!image->eof() && RLength_or_Size_read < 12){
         if(pos < 0){
+            if(cur_byte == 0xFF)
+                image->read(reinterpret_cast<char*>(&cur_byte), 1);
             image->read(reinterpret_cast<char*>(&cur_byte), 1);
             pos = 7;
         }
