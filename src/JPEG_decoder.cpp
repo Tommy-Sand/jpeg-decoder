@@ -68,12 +68,14 @@ public:
 
 class Scan_header{
 public:
+	Scan_header(uint16_t Length, uint8_t Num_chans, Chan_specifier *Chan_specs, uint8_t Spectral_start, uint8_t Spectral_end, uint8_t Successive_approx): length{Length}, num_chans{Num_chans}, chan_specs{Chan_specs}, spectral_start{Spectral_start}, spectral_end{Spectral_end}, successive_approx{Successive_approx} {}
+
     uint16_t length;
     uint8_t num_chans;
     Chan_specifier *chan_specs;
-    uint8_t Spectral_start;
-    uint8_t Spectral_end;
-    uint8_t Successive_approx;
+    uint8_t spectral_start;
+    uint8_t spectral_end;
+    uint8_t successive_approx;
 };
 
 class HTable{
@@ -324,15 +326,48 @@ DCTheader *read_DCTheader(std::ifstream *image){
     return new DCTheader(Length, Sample_percision, Height, Width, Num_chans, Channel_infos);
 }
 
+uint8_t calculate_MCU(){
+	uint8_t Num_chans = scanheader->num_chans;
+	if(Num_chans == 1)
+		return 1;
+	MCU = 0;
+	for(int i = 0; i < Num_chans; i++){
+		uint8_t ComponentID = scanheader->chan_specs[i].componentID;
+		bool found = false;
+		for(Channel_info *j = dctheader->chan_infos; j < (dctheader->chan_infos + dctheader->num_chans); j++){ 
+			if(j->identifier == ComponentID){
+				MCU += (j->horz_sampling * j->vert_sampling);
+				found = true;
+				break;
+			}	
+		}
+	}
+	return MCU;
+}
+
 Scan_header *read_Scan_header(std::ifstream *image){
     uint16_t Length = cur_byte;
     image->read(reinterpret_cast<char*>(&cur_byte), 1);
     Length = (Length << 8) + cur_byte;
 
     uint8_t *Header = new uint8_t[Length - 2];
+
     image->read(reinterpret_cast<char*>(Header), Length - 2);
 
-    return new Scan_header();
+	uint8_t i = 0;
+    uint8_t Num_chans = Header[i++];
+    Chan_specifier *Chan_specs = new Chan_specifier[Num_chans];
+    for(uint8_t j = 0; j < Num_chans; j++){
+    	Chan_specs[j].componentID = Header[i++];
+		Chan_specs[j].Huffman_DC = (Header[i] >> 4) & 0xF;
+		Chan_specs[j].Huffman_AC = Header[i++] & 0xF;
+    }
+	uint8_t Spectral_start = Header[i++];
+	uint8_t Spectral_end = Header[i++];
+	uint8_t Successive_approx = Header[i++];
+
+    free(Header);
+    return new Scan_header(Length, Num_chans, Chan_specs, Spectral_start, Spectral_end, Successive_approx);
 }
 
 HTable *read_HTable(std::ifstream *image){
