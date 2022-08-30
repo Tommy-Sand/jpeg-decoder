@@ -102,12 +102,23 @@ public:
     int value;
 };
 
+class Data_block{
+public:
+	Data_block(uint8_t Horz, uint8_t Vert): horz{Horz}, vert{Vert} {}
+	
+	uint8_t horz;
+	uint8_t vert;
+	int16_t data[8][8];
+};
+
 JFIF_header *header;
 QTable *qtable;
 DCTheader *dctheader;
 std::vector<HTable *> htables;
 HTable *htable;
 Scan_header *scanheader;
+
+std::vector<Data_block *> MCU_block = {};
 
 std::ifstream open_image(std::filesystem::path p);
 uint8_t find_marker(std::ifstream *image);
@@ -122,6 +133,7 @@ void read_comment(std::ifstream *image);
 Scan_header *read_Scan_header(std::ifstream *image);
 int decode_DC_coefficient(std::ifstream *image, HTable *htable);
 AC_coefficient *decode_AC_coefficient(std::ifstream *image, HTable *htable);
+void create_MCU_block();
 
 int main(){
     std::filesystem::path p = "..\\example\\cat.jpg";
@@ -347,10 +359,18 @@ void calculate_MCU(){
 				break;
 			}	
 		}
+void create_MCU_block(){
+	for(int i = 0; i < MCU.size(); i++){
+		for(int j = 0; j < MCU[i]; j++){
+			uint8_t ComponentID = scanheader->chan_specs[i].componentID;
+			Channel_info *k = dctheader->chan_infos;
+			for(;k < (dctheader->chan_infos + dctheader->num_chans); k++){ 
+				if(k->identifier == ComponentID)
+					break;
+			}
+			MCU_block.push_back(new Data_block(j%(k->vert_sampling), j/(k->horz_sampling)));
+		}
 	}
-    for(int i = 0; i < MCU.size(); i++){
-        std::cout << (int) MCU[i] << "\n";
-    }
 }
 
 Scan_header *read_Scan_header(std::ifstream *image){
