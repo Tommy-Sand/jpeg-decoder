@@ -10,7 +10,7 @@
 uint8_t cur_byte;
 uint8_t cur_marker;
 int8_t pos = 7;
-int8_t MCU;
+std::vector<uint8_t> MCU = {};
 
 class JFIF_header{
 public:
@@ -114,7 +114,7 @@ uint8_t find_marker(std::ifstream *image);
 JFIF_header *read_header(std::ifstream *image);
 QTable *read_QTable(std::ifstream *image);
 DCTheader *read_DCTheader(std::ifstream *image);
-uint8_t calculate_MCU();
+void calculate_MCU();
 HTable *read_HTable(std::ifstream *image);
 void interpret_HTable(uint8_t Hcodes_lengths[], uint8_t*Coded_symbol_array, std::vector<uint8_t> *Symbol_array);
 void create_max_min_symbols(int16_t min_symbol[16],int16_t max_symbol[16], std::vector<uint8_t> *Symbol_array);
@@ -153,8 +153,6 @@ int main(){
 
                 std::cout << "BaseLine DCT found\n";
                 dctheader = read_DCTheader(&image);
-
-                std::cout << MCU;
                 break;
             case 0xC2:
                 //Read and Store Progressive DCT
@@ -208,7 +206,7 @@ int main(){
                 scanheader = read_Scan_header(&image);
 
                 image.read(reinterpret_cast<char*>(&cur_byte), 1);
-                MCU = calculate_MCU();
+                calculate_MCU();
                 /*
                 while not the end of scan
                     Read the dc coefficient
@@ -348,23 +346,24 @@ DCTheader *read_DCTheader(std::ifstream *image){
     return new DCTheader(Length, Sample_percision, Height, Width, Num_chans, Channel_infos);
 }
 
-uint8_t calculate_MCU(){
+void calculate_MCU(){
 	uint8_t Num_chans = scanheader->num_chans;
 	if(Num_chans == 1)
-		return 1;
-	MCU = 0;
+		MCU.push_back(1);
 	for(int i = 0; i < Num_chans; i++){
 		uint8_t ComponentID = scanheader->chan_specs[i].componentID;
 		bool found = false;
 		for(Channel_info *j = dctheader->chan_infos; j < (dctheader->chan_infos + dctheader->num_chans); j++){ 
 			if(j->identifier == ComponentID){
-				MCU += (j->horz_sampling * j->vert_sampling);
+				MCU.push_back(j->horz_sampling * j->vert_sampling);
 				found = true;
 				break;
 			}	
 		}
 	}
-	return MCU;
+    for(int i = 0; i < MCU.size(); i++){
+        std::cout << (int) MCU[i] << "\n";
+    }
 }
 
 Scan_header *read_Scan_header(std::ifstream *image){
