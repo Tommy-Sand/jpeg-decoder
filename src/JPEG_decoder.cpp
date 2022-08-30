@@ -207,20 +207,7 @@ int main(){
 
                 image.read(reinterpret_cast<char*>(&cur_byte), 1);
                 calculate_MCU();
-                /*
-                while not the end of scan
-                    Read the dc coefficient
-                    Read ac coefficients until you reach the end
 
-                */
-				/*
-                while(true){
-                    decode_DC_coefficient(&image, htables[0]);
-                    std::cout << "reading AC\n";
-                    if(!(decode_AC_coefficient(&image, htables[1])->EOB))
-                        break;
-                }
-				*/
                 break;
             /*
             case 0xEn: //For Application specific header that are not 0xE0
