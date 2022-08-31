@@ -12,6 +12,15 @@ uint8_t cur_marker;
 int8_t pos = 7;
 std::vector<uint8_t> MCU = {};
 
+uint8_t zigzag[64] = {0x00, 0x10, 0x01, 0x02, 0x11, 0x20, 0x30, 0x21,
+					  0x12, 0x03, 0x04, 0x13, 0x22, 0x31, 0x40, 0x50,
+					  0x41, 0x32, 0x23, 0x14, 0x05, 0x06, 0x16, 0x24,
+					  0x33, 0x42, 0x51, 0x60, 0x70, 0x61, 0x52, 0x43,
+					  0x32, 0x25, 0x16, 0x07, 0x17, 0x26, 0x35, 0x44,
+					  0x53, 0x62, 0x71, 0x72, 0x63, 0x54, 0x45, 0x36,
+					  0x27, 0x37, 0x46, 0x55, 0x64, 0x73, 0x74, 0x65,
+					  0x56, 0x47, 0x57, 0x66, 0x75, 0x76, 0x67, 0x77};
+
 class JFIF_header{
 public:
     JFIF_header(uint16_t Length, uint64_t Identfier, uint16_t JFIF_Version, uint8_t Dens_units, uint16_t Xdens, uint16_t Ydens, uint8_t Xthumbnail, uint8_t Ythumbnail)
@@ -108,7 +117,7 @@ public:
 	
 	uint8_t horz;
 	uint8_t vert;
-	int16_t data[8][8];
+	int16_t data[8][8] = {0};
 };
 
 JFIF_header *header;
@@ -126,6 +135,9 @@ JFIF_header *read_header(std::ifstream *image);
 QTable *read_QTable(std::ifstream *image);
 DCTheader *read_DCTheader(std::ifstream *image);
 void calculate_MCU();
+void create_MCU_block();
+void read_MCU(std::ifstream *image);
+void read_data_block(Data_block *data_block, std::ifstream *image, uint8_t id);
 HTable *read_HTable(std::ifstream *image);
 void interpret_HTable(uint8_t Hcodes_lengths[], uint8_t*Coded_symbol_array, std::vector<uint8_t> *Symbol_array);
 void create_max_min_symbols(int16_t min_symbol[16],int16_t max_symbol[16], std::vector<uint8_t> *Symbol_array);
@@ -133,7 +145,6 @@ void read_comment(std::ifstream *image);
 Scan_header *read_Scan_header(std::ifstream *image);
 int decode_DC_coefficient(std::ifstream *image, HTable *htable);
 AC_coefficient *decode_AC_coefficient(std::ifstream *image, HTable *htable);
-void create_MCU_block();
 
 int main(){
     std::filesystem::path p = "..\\example\\cat.jpg";
@@ -219,6 +230,8 @@ int main(){
 
                 image.read(reinterpret_cast<char*>(&cur_byte), 1);
                 calculate_MCU();
+				create_MCU_block();
+				read_MCU(&image);
 
                 break;
             /*
@@ -359,6 +372,11 @@ void calculate_MCU(){
 				break;
 			}	
 		}
+		if(!found)
+			std::cout << "ID of component not found\n";
+	}
+}
+
 void create_MCU_block(){
 	for(int i = 0; i < MCU.size(); i++){
 		for(int j = 0; j < MCU[i]; j++){
@@ -371,6 +389,59 @@ void create_MCU_block(){
 			MCU_block.push_back(new Data_block(j%(k->vert_sampling), j/(k->horz_sampling)));
 		}
 	}
+}
+
+void read_MCU(std::ifstream *image){
+	int block_pos = 0;
+	for(int i = 0; i < MCU.size(); i++){
+		for(int j = 0; j < MCU[i]; j++)
+			read_data_block(MCU_block[block_pos++], image, i);
+	}
+}
+
+void read_data_block(Data_block *data_block, std::ifstream *image, uint8_t id){
+	//search for Huffman_DC
+	uint8_t Huff_DC_ID = scanheader->chan_specs[id].Huffman_DC;
+	uint8_t Huff_AC_ID = scanheader->chan_specs[id].Huffman_AC;
+	
+	uint8_t i = 0;
+	for(; i < htables.size(); i++){
+		if(htables[i]->type == 0 && htables[i]->table_ID == Huff_DC_ID)
+			break;
+	}
+
+	uint8_t j = 0;
+	for(; j < htables.size(); j++){
+		if(htables[j]->type == 1 && htables[j]->table_ID == Huff_AC_ID)
+			break;
+	}
+
+	data_block->data[0][0] = decode_DC_coefficient(image, htables[i]);
+	uint8_t coeff_count = 1;
+	while(coeff_count < 64){
+		AC_coefficient *AC = decode_AC_coefficient(image, htables[j]);//find the correct htable
+		if(AC->EOB){
+            for(int i = 0; i < 7; i++){
+                for(int j = 0; j < 7; j++)
+                    std::cout << data_block->data[i][j] << " ";
+                std::cout << std::endl;
+            }
+			return;
+        }
+		else{
+			coeff_count += AC->run_length;
+			uint8_t decoded_horz = (zigzag[coeff_count] >> 4) & 0xF;
+			uint8_t decoded_vert = (zigzag[coeff_count]) & 0xF;
+			data_block->data[decoded_vert][decoded_horz] = AC->value;
+		}
+	}
+
+    for(int i = 0; i < 7; i++){
+		for(int j = 0; j < 7; j++)
+			std::cout << data_block->data[i][j];
+        std::cout << std::endl;
+	}
+
 }
 
 Scan_header *read_Scan_header(std::ifstream *image){
@@ -542,7 +613,6 @@ AC_coefficient *decode_AC_coefficient(std::ifstream *image, HTable *htable){
         }
     }
     if(RLength_or_Size == 0)
-        std::cout << "Nothing found" << std::endl;
         return new AC_coefficient(true, 0, 0);
 
     uint8_t Size = RLength_or_Size & 0xF;
@@ -564,3 +634,5 @@ AC_coefficient *decode_AC_coefficient(std::ifstream *image, HTable *htable){
     }
     return new AC_coefficient(false, RLength, Value);
 }
+
+
