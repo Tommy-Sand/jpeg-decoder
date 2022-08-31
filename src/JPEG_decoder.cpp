@@ -421,11 +421,6 @@ void read_data_block(Data_block *data_block, std::ifstream *image, uint8_t id){
 	while(coeff_count < 64){
 		AC_coefficient *AC = decode_AC_coefficient(image, htables[j]);//find the correct htable
 		if(AC->EOB){
-            for(int i = 0; i < 7; i++){
-                for(int j = 0; j < 7; j++)
-                    std::cout << data_block->data[i][j] << " ";
-                std::cout << std::endl;
-            }
 			return;
         }
 		else{
