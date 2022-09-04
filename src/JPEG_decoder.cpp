@@ -82,10 +82,8 @@ int main(){
                     if(max_sampling_chan.horz_sampling * max_sampling_chan.vert_sampling < max_sampling_chan.horz_sampling * max_sampling_chan.vert_sampling)
                         max_sampling_chan = current_chan;
                 }
-                uint16_t num_MCUs = ceil(((float) dctheader->width/(max_sampling_chan.horz_sampling * 8)) * ((float) dctheader->height/(max_sampling_chan.vert_sampling * 8)));
-                //std::cout << num_MCUs << std::endl;
+                uint16_t num_MCUs = ceil((float) dctheader->width/(max_sampling_chan.horz_sampling * 8)) * ceil((float) dctheader->height/(max_sampling_chan.vert_sampling * 8));
                 for(int i = 0; i < num_MCUs; i++){
-                    //std::cout << i << std::endl;
                     for(int j = 0; j < MCU_block.size(); j++){
                         for(int k = 0; k < 7; k++){
                             for(int l = 0; l < 7; l++){
@@ -95,8 +93,7 @@ int main(){
                     }   
                     read_MCU(&image);
                 }
-                std::cout << (int) cur_byte << std::endl;
-                std::exit(0);
+                //std::exit(0);
                 break;
             }
             /*
@@ -216,7 +213,6 @@ DCTheader *read_DCTheader(std::ifstream *image){
 
 void calculate_MCU(){
 	uint8_t Num_chans = scanheader->num_chans;
-    //std::cout << (int) scanheader->num_chans << std::endl;
 	if(Num_chans == 1)
 		MCU.push_back(1);
 	for(int i = 0; i < Num_chans; i++){
@@ -252,13 +248,13 @@ void create_MCU_block(){
 void read_MCU(std::ifstream *image){
 	int block_pos = 0;
 	for(int i = 0; i < MCU.size(); i++){
-		for(int j = 0; j < MCU[i]; j++)
+		for(int j = 0; j < MCU[i]; j++){
 			read_data_block(MCU_block[block_pos++], image, i);
+        }
 	}
 }
 
 void read_data_block(Data_block *data_block, std::ifstream *image, uint8_t id){
-	//search for Huffman_DC
 	uint8_t Huff_DC_ID = scanheader->chan_specs[id].Huffman_DC;
 	uint8_t Huff_AC_ID = scanheader->chan_specs[id].Huffman_AC;
 	
@@ -363,7 +359,7 @@ void create_max_min_symbols(int16_t min_symbol[16],int16_t max_symbol[16], std::
 
     for(int i = last_non_zero_length+1; i < 16; i++){
         if(Symbol_array[i].size() > 0){
-            min_symbol[i] = (max_symbol[last_non_zero_length] + 1) << 1;
+            min_symbol[i] = (max_symbol[last_non_zero_length] + 1) * (1 << (i - last_non_zero_length));
             max_symbol[i] = min_symbol[i] + Symbol_array[i].size() - 1;
             last_non_zero_length = i;
         }
@@ -389,62 +385,40 @@ void read_comment(std::ifstream *image){
 }
 
 int decode_DC_coefficient(std::ifstream *image, HTable *htable){
-    uint16_t Size = 0;
+    int16_t Size = 0;
     uint8_t Size_read = 0;
     int16_t Value = 0;
     bool skip_byte = false;
 
     while(!image->eof() && Size_read < 12){
-        if(pos < 0){
-            if(skip_byte){
-                image->read(reinterpret_cast<char*>(&cur_byte), 1);
-                skip_byte = false;
-            }    
-            image->read(reinterpret_cast<char*>(&cur_byte), 1);
-            pos = 7;
-            if(cur_byte == 0xFF){
-                uint8_t next_byte = image->peek();
-                if(next_byte == 0x00)
-                    skip_byte = true;
-                else if(next_byte == 0xD9){
-                    break;
-                }
-            }
-        }
+        feed_buffer(image);
         Size = (Size << 1) + ((cur_byte >> pos--) & 1);
         Size_read++;
+
+        
 
         if(Size >= htable->min_symbol[Size_read - 1] && Size <= htable->max_symbol[Size_read - 1]){
             bool Found = false;
             for(uint8_t i = 0; i < htable->symbol_array[Size_read - 1].size(); i++){
                 if(Size == htable->min_symbol[Size_read - 1] + i){
+
                     Size = htable->symbol_array[Size_read - 1][i];
                     Found = true;
                     break;
                 }
             }
             if(Found) break;
+            else{
+                std::cout << "ERROR\n";
+                exit(1);
+            }
         }
     }
 
+
     uint8_t i = 0;
-    while(!image->eof() && i++ < Size){
-        if(pos < 0){
-            if(skip_byte){
-                image->read(reinterpret_cast<char*>(&cur_byte), 1);
-                skip_byte = false;
-            }    
-            image->read(reinterpret_cast<char*>(&cur_byte), 1);
-            pos = 7;
-            if(cur_byte == 0xFF){
-                uint8_t next_byte = image->peek();
-                if(next_byte == 0x00)
-                    skip_byte = true;
-                else if(next_byte == 0xD9){
-                    break;
-                }
-            }
-        }
+    while(i++ < Size){
+        feed_buffer(image);
         Value = (Value << 1) + ((cur_byte >> pos--) & 1);
     }
 
@@ -456,28 +430,13 @@ int decode_DC_coefficient(std::ifstream *image, HTable *htable){
 }
 
 AC_coefficient *decode_AC_coefficient(std::ifstream *image, HTable *htable){
-    uint16_t RLength_or_Size = 0;
+    int16_t RLength_or_Size = 0;
     uint8_t RLength_or_Size_read = 0;
     int16_t Value = 0;
     bool skip_byte = false;
 
     while(!image->eof() && RLength_or_Size_read < 16){
-        if(pos < 0){
-            if(skip_byte){
-                image->read(reinterpret_cast<char*>(&cur_byte), 1);
-                skip_byte = false;
-            }    
-            image->read(reinterpret_cast<char*>(&cur_byte), 1);
-            pos = 7;
-            if(cur_byte == 0xFF){
-                uint8_t next_byte = image->peek();
-                if(next_byte == 0x00)
-                    skip_byte = true;
-                else if(next_byte == 0xD9){
-                    break;
-                }
-            }
-        }
+        feed_buffer(image);
         RLength_or_Size = (RLength_or_Size << 1) + ((cur_byte >> pos--) & 1);
         RLength_or_Size_read++;
         if(RLength_or_Size >= htable->min_symbol[RLength_or_Size_read - 1] && RLength_or_Size <= htable->max_symbol[RLength_or_Size_read - 1]){
@@ -490,13 +449,15 @@ AC_coefficient *decode_AC_coefficient(std::ifstream *image, HTable *htable){
                 }
             }
             if(Found) break;
+            else{
+                std::cout << "ERROR\n";
+                exit(1);
+            }
         }
     }
+    
     if(RLength_or_Size == 0)
         return new AC_coefficient(true, 0, 0);
-
-    
-
     uint8_t Size = RLength_or_Size & 0xF;
     uint8_t RLength = (RLength_or_Size >> 4) & 0xF;
 
@@ -506,22 +467,7 @@ AC_coefficient *decode_AC_coefficient(std::ifstream *image, HTable *htable){
 
     uint8_t i = 0;
     while(!image->eof() && i++ < Size){
-        if(pos < 0){
-            if(skip_byte){
-                image->read(reinterpret_cast<char*>(&cur_byte), 1);
-                skip_byte = false;
-            }    
-            image->read(reinterpret_cast<char*>(&cur_byte), 1);
-            pos = 7;
-            if(cur_byte == 0xFF){
-                uint8_t next_byte = image->peek();
-                if(next_byte == 0x00)
-                    skip_byte = true;
-                else if(next_byte == 0xD9){
-                    break;
-                }
-            }
-        }
+        feed_buffer(image);
         Value = (Value << 1) + ((cur_byte >> pos--) & 1);
     }
 
@@ -530,4 +476,25 @@ AC_coefficient *decode_AC_coefficient(std::ifstream *image, HTable *htable){
         Value = - (Value + difference);
     }
     return new AC_coefficient(false, RLength, Value);
+}
+
+void feed_buffer(std::ifstream *image){
+    if(pos < 0){
+        if(skip_byte){
+                image->read(reinterpret_cast<char*>(&cur_byte), 1);
+                skip_byte = false;
+        }
+        image->read(reinterpret_cast<char*>(&cur_byte), 1);
+        pos = 7;
+        if(cur_byte == 0xFF){
+            uint8_t next_byte = image->peek();
+            if(next_byte == 0x00){
+                skip_byte = true;
+            }
+            else if(next_byte == 0xD9){
+                std::cout << "ERROR: END OF FILE\n";
+                exit(1);
+            }
+        }
+    }
 }

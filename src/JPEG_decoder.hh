@@ -110,6 +110,7 @@ public:
 uint8_t cur_byte;
 uint8_t cur_marker;
 int8_t pos = 7;
+bool skip_byte = false;
 std::vector<uint8_t> MCU = {};
 JFIF_header *header;
 QTable *qtable;
@@ -141,5 +142,6 @@ void interpret_HTable(uint8_t Hcodes_lengths[], uint8_t*Coded_symbol_array, std:
 void create_max_min_symbols(int16_t min_symbol[16],int16_t max_symbol[16], std::vector<uint8_t> *Symbol_array);
 void read_comment(std::ifstream *image);
 Scan_header *read_Scan_header(std::ifstream *image);
+void feed_buffer(std::ifstream *image);
 int decode_DC_coefficient(std::ifstream *image, HTable *htable);
 AC_coefficient *decode_AC_coefficient(std::ifstream *image, HTable *htable);
