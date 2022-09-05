@@ -92,6 +92,7 @@ int main(){
                         }
                     }   
                     read_MCU(&image);
+                    
                 }
                 //std::exit(0);
                 break;
@@ -391,7 +392,9 @@ int decode_DC_coefficient(std::ifstream *image, HTable *htable){
     bool skip_byte = false;
 
     while(!image->eof() && Size_read < 12){
-        feed_buffer(image);
+        if(pos < 0){
+            feed_buffer(image);
+        }
         Size = (Size << 1) + ((cur_byte >> pos--) & 1);
         Size_read++;
 
@@ -418,7 +421,9 @@ int decode_DC_coefficient(std::ifstream *image, HTable *htable){
 
     uint8_t i = 0;
     while(i++ < Size){
-        feed_buffer(image);
+        if(pos < 0){
+            feed_buffer(image);
+        }
         Value = (Value << 1) + ((cur_byte >> pos--) & 1);
     }
 
@@ -436,7 +441,9 @@ AC_coefficient *decode_AC_coefficient(std::ifstream *image, HTable *htable){
     bool skip_byte = false;
 
     while(!image->eof() && RLength_or_Size_read < 16){
-        feed_buffer(image);
+        if(pos < 0){
+            feed_buffer(image);
+        }
         RLength_or_Size = (RLength_or_Size << 1) + ((cur_byte >> pos--) & 1);
         RLength_or_Size_read++;
         if(RLength_or_Size >= htable->min_symbol[RLength_or_Size_read - 1] && RLength_or_Size <= htable->max_symbol[RLength_or_Size_read - 1]){
@@ -467,7 +474,9 @@ AC_coefficient *decode_AC_coefficient(std::ifstream *image, HTable *htable){
 
     uint8_t i = 0;
     while(!image->eof() && i++ < Size){
-        feed_buffer(image);
+        if(pos < 0){
+            feed_buffer(image);
+        }
         Value = (Value << 1) + ((cur_byte >> pos--) & 1);
     }
 
@@ -479,22 +488,23 @@ AC_coefficient *decode_AC_coefficient(std::ifstream *image, HTable *htable){
 }
 
 void feed_buffer(std::ifstream *image){
-    if(pos < 0){
-        if(skip_byte){
-                image->read(reinterpret_cast<char*>(&cur_byte), 1);
-                skip_byte = false;
+    if(skip_byte){
+            image->read(reinterpret_cast<char*>(&cur_byte), 1);
+            skip_byte = false;
+    }
+    image->read(reinterpret_cast<char*>(&cur_byte), 1);
+    pos = 7;
+    if(cur_byte == 0xFF){
+        uint8_t next_byte = image->peek();
+        if(next_byte == 0x00){
+            skip_byte = true;
         }
-        image->read(reinterpret_cast<char*>(&cur_byte), 1);
-        pos = 7;
-        if(cur_byte == 0xFF){
-            uint8_t next_byte = image->peek();
-            if(next_byte == 0x00){
-                skip_byte = true;
-            }
-            else if(next_byte == 0xD9){
-                std::cout << "ERROR: END OF FILE\n";
-                exit(1);
-            }
+        else if(next_byte == 0xD9){
+            std::cout << "ERROR: END OF FILE" << std::endl;
+            exit(1);
+        }
+        else if(next_byte >= 0xD0 && next_byte <= 0xD7){
+            std::cout << "Restart" << std::endl;
         }
     }
 }
