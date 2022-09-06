@@ -117,7 +117,7 @@ std::ifstream open_image(std::filesystem::path p){
 
 uint8_t find_marker(std::ifstream *image){
     while(image->peek() != EOF){
-        if(cur_byte != 0xff){
+        if(cur_byte != 0xFF){
             image->read(reinterpret_cast<char*>(&cur_byte), 1);
         }
         else{
@@ -182,32 +182,29 @@ DCTheader *read_DCTheader(std::ifstream *image){
     image->read(reinterpret_cast<char*>(&cur_byte), 1);
     Length = (Length << 8) + cur_byte;
 
-    image->read(reinterpret_cast<char*>(&cur_byte), 1);
-    uint8_t Sample_percision = cur_byte;
+	uint8_t Buffer_pos = 0;
+    uint8_t *Buffer = new uint8_t[Length - 2];
+	image->read(reinterpret_cast<char *>(Buffer), Length - 2);
 
-    image->read(reinterpret_cast<char*>(&cur_byte), 1);
-    uint16_t Height = cur_byte;
-    image->read(reinterpret_cast<char*>(&cur_byte), 1);
-    Height = (Height << 8) + cur_byte;
+    uint8_t Sample_percision = Buffer[Buffer_pos++];
+    
+    uint16_t Height = Buffer[Buffer_pos++];
+    Height = (Height << 8) + Buffer[Buffer_pos++];
 
-    image->read(reinterpret_cast<char*>(&cur_byte), 1);
-    uint16_t Width = cur_byte;
-    image->read(reinterpret_cast<char*>(&cur_byte), 1);
-    Width = (Width << 8) + cur_byte;
+    uint16_t Width = Buffer[Buffer_pos++];
+    Width = (Width << 8) + Buffer[Buffer_pos++];
 
-    image->read(reinterpret_cast<char*>(&cur_byte), 1);
-    uint8_t Num_chans = cur_byte;
-
-    Channel_info *Channel_infos = new Channel_info[Num_chans];
+    uint8_t Num_chans = Buffer[Buffer_pos++];
+    
+	Channel_info *Channel_infos = new Channel_info[Num_chans];
     for(uint8_t i = 0; i < Num_chans; i++){
-        image->read(reinterpret_cast<char*>(&cur_byte), 1);
-        Channel_infos[i].identifier = cur_byte;
-        image->read(reinterpret_cast<char*>(&cur_byte), 1);
-        Channel_infos[i].horz_sampling = (cur_byte >> 4) & 0xF;
-        Channel_infos[i].vert_sampling = (cur_byte & 0xF);
-        image->read(reinterpret_cast<char*>(&cur_byte), 1);
-        Channel_infos[i].qtableID = cur_byte;
+        Channel_infos[i].identifier = Buffer[Buffer_pos++];
+        Channel_infos[i].horz_sampling = (Buffer[Buffer_pos] >> 4) & 0xF;
+        Channel_infos[i].vert_sampling = (Buffer[Buffer_pos++]  & 0xF);
+        Channel_infos[i].qtableID = Buffer[Buffer_pos++];
     }
+
+	free(Buffer);
 
     return new DCTheader(Length, Sample_percision, Height, Width, Num_chans, Channel_infos);
 }
