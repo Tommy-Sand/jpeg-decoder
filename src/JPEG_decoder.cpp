@@ -21,7 +21,7 @@ int main(){
                 break;
             case 0xDB:
                 std::cout << "Quantized table found\n";
-                qtable = read_QTable(&image);
+                qtable_vec.pushback(read_QTable(&image));
                 break;
             case 0xC0:
                 std::cout << "BaseLine DCT found\n";
@@ -92,7 +92,7 @@ int main(){
                         }
                     }   
                     read_MCU(&image);
-                    
+                    dequantize_MCU();
                 }
                 //std::exit(0);
                 break;
@@ -509,4 +509,14 @@ void read_data_block(Data_block *data_block, std::ifstream *image, uint8_t id){
 		}
 	}
 
+}
+
+void dequantize_MCU(Quant_table *qtable){
+    for(Data_block &data_block: MCU_block){
+        for(int i = 0; i < 8; i++){
+            for(int j = 0; j < 8; j++){
+                data_block.data[i][j] = data_block.data[i][j] * qtable[i][j];
+            }
+        }
+    }
 }
