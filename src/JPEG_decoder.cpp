@@ -493,7 +493,8 @@ void read_data_block(Data_block *data_block, std::ifstream *image, uint8_t id){
 			break;
 	}
 
-	data_block->data[0][0] = decode_DC_coefficient(image, htables[i]);
+	data_block->data[0][0] = pred + decode_DC_coefficient(image, htables[i]);
+    pred = data_block->data[0][0];
 	uint8_t coeff_count = 1;
 	while(coeff_count < 64){
 		AC_coefficient *AC = decode_AC_coefficient(image, htables[j]);
