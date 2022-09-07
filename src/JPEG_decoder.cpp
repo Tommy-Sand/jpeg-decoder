@@ -182,7 +182,7 @@ DCTheader *read_DCTheader(std::ifstream *image){
     image->read(reinterpret_cast<char*>(&cur_byte), 1);
     Length = (Length << 8) + cur_byte;
 
-	uint8_t Buffer_pos = 0;
+	uint16_t Buffer_pos = 0;
     uint8_t *Buffer = new uint8_t[Length - 2];
 	image->read(reinterpret_cast<char *>(Buffer), Length - 2);
 
@@ -290,23 +290,22 @@ Scan_header *read_Scan_header(std::ifstream *image){
     image->read(reinterpret_cast<char*>(&cur_byte), 1);
     Length = (Length << 8) + cur_byte;
 
-    uint8_t *Header = new uint8_t[Length - 2];
-
-    image->read(reinterpret_cast<char*>(Header), Length - 2);
+    uint8_t *Buffer = new uint8_t[Length - 2];
+    image->read(reinterpret_cast<char*>(Buffer), Length - 2);
 
 	uint8_t i = 0;
-    uint8_t Num_chans = Header[i++];
+    uint8_t Num_chans = Buffer[i++];
     Chan_specifier *Chan_specs = new Chan_specifier[Num_chans];
     for(uint8_t j = 0; j < Num_chans; j++){
-    	Chan_specs[j].componentID = Header[i++];
-		Chan_specs[j].Huffman_DC = (Header[i] >> 4) & 0xF;
-		Chan_specs[j].Huffman_AC = Header[i++] & 0xF;
+    	Chan_specs[j].componentID = Buffer[i++];
+		Chan_specs[j].Huffman_DC = (Buffer[i] >> 4) & 0xF;
+		Chan_specs[j].Huffman_AC = Buffer[i++] & 0xF;
     }
-	uint8_t Spectral_start = Header[i++];
-	uint8_t Spectral_end = Header[i++];
-	uint8_t Successive_approx = Header[i++];
+	uint8_t Spectral_start = Buffer[i++];
+	uint8_t Spectral_end = Buffer[i++];
+	uint8_t Successive_approx = Buffer[i++];
 
-    free(Header);
+    free(Buffer);
     return new Scan_header(Length, Num_chans, Chan_specs, Spectral_start, Spectral_end, Successive_approx);
 }
 
@@ -315,16 +314,23 @@ HTable *read_HTable(std::ifstream *image){
 	image->read(reinterpret_cast<char*>(&cur_byte), 1);
 	Length = (Length << 8) + cur_byte;
 
-    image->read(reinterpret_cast<char*>(&cur_byte), 1);
-    uint8_t Type = (cur_byte >> 4) & 0xF;
-    uint8_t Table_ID = cur_byte & 0xF;
+    uint16_t Buffer_pos = 0;
+    uint8_t *Buffer = new uint8_t[Length - 2];
+    image->read(reinterpret_cast<char*>(Buffer), Length - 2);
+
+    uint8_t Type = (Buffer[Buffer_pos] >> 4) & 0xF;
+    uint8_t Table_ID = Buffer[Buffer_pos++] & 0xF;
 
     uint8_t Hcodes_lengths[16];
-    image->read(reinterpret_cast<char*>(Hcodes_lengths), 16);
+    for(int i = 0; i < 16; i++){
+        Hcodes_lengths[i] = Buffer[Buffer_pos++];
+    }
 
     uint8_t *Coded_symbol_array = new uint8_t [Length - 19];
-    image->read(reinterpret_cast<char*>(Coded_symbol_array), (std::streamsize) Length - 19);
-
+    for(int i = 0; i < Length - 19; i++){
+        Coded_symbol_array[i] = Buffer[Buffer_pos++];
+    }
+    
     std::vector<uint8_t> *Symbol_array = new std::vector<uint8_t>[16];
     interpret_HTable(Hcodes_lengths, Coded_symbol_array, Symbol_array);
 
@@ -394,8 +400,6 @@ int decode_DC_coefficient(std::ifstream *image, HTable *htable){
         }
         Size = (Size << 1) + ((cur_byte >> pos--) & 1);
         Size_read++;
-
-        
 
         if(Size >= htable->min_symbol[Size_read - 1] && Size <= htable->max_symbol[Size_read - 1]){
             bool Found = false;
