@@ -209,82 +209,6 @@ DCTheader *read_DCTheader(std::ifstream *image){
     return new DCTheader(Length, Sample_percision, Height, Width, Num_chans, Channel_infos);
 }
 
-void calculate_MCU(){
-	uint8_t Num_chans = scanheader->num_chans;
-	if(Num_chans == 1)
-		MCU.push_back(1);
-	for(int i = 0; i < Num_chans; i++){
-		uint8_t ComponentID = scanheader->chan_specs[i].componentID;
-		bool found = false;
-		for(Channel_info *j = dctheader->chan_infos; j < (dctheader->chan_infos + dctheader->num_chans); j++){ 
-			if(j->identifier == ComponentID){
-				MCU.push_back(j->horz_sampling * j->vert_sampling);
-				found = true;
-				break;
-			}	
-		}
-        
-		if(!found)
-			std::cout << "ID of component not found\n";
-	}
-}
-
-void create_MCU_block(){
-	for(int i = 0; i < MCU.size(); i++){
-		for(int j = 0; j < MCU[i]; j++){
-			uint8_t ComponentID = scanheader->chan_specs[i].componentID;
-			Channel_info *k = dctheader->chan_infos;
-			for(;k < (dctheader->chan_infos + dctheader->num_chans); k++){ 
-				if(k->identifier == ComponentID)
-					break;
-			}
-			MCU_block.push_back(new Data_block(j%(k->vert_sampling), j/(k->horz_sampling)));
-		}
-	}
-}
-
-void read_MCU(std::ifstream *image){
-	int block_pos = 0;
-	for(int i = 0; i < MCU.size(); i++){
-		for(int j = 0; j < MCU[i]; j++){
-			read_data_block(MCU_block[block_pos++], image, i);
-        }
-	}
-}
-
-void read_data_block(Data_block *data_block, std::ifstream *image, uint8_t id){
-	uint8_t Huff_DC_ID = scanheader->chan_specs[id].Huffman_DC;
-	uint8_t Huff_AC_ID = scanheader->chan_specs[id].Huffman_AC;
-	
-	uint8_t i = 0;
-	for(; i < htables.size(); i++){
-		if(htables[i]->type == 0 && htables[i]->table_ID == Huff_DC_ID)
-			break;
-	}
-
-	uint8_t j = 0;
-	for(; j < htables.size(); j++){
-		if(htables[j]->type == 1 && htables[j]->table_ID == Huff_AC_ID)
-			break;
-	}
-
-	data_block->data[0][0] = decode_DC_coefficient(image, htables[i]);
-	uint8_t coeff_count = 1;
-	while(coeff_count < 64){
-		AC_coefficient *AC = decode_AC_coefficient(image, htables[j]);
-		if(AC->EOB){
-			return;
-        }
-		else{
-			coeff_count += AC->run_length;
-			uint8_t decoded_horz = (zigzag[coeff_count] >> 4) & 0xF;
-			uint8_t decoded_vert = (zigzag[coeff_count]) & 0xF;
-			data_block->data[decoded_vert][decoded_horz] = AC->value;
-		}
-	}
-
-}
-
 Scan_header *read_Scan_header(std::ifstream *image){
     uint16_t Length = cur_byte;
     image->read(reinterpret_cast<char*>(&cur_byte), 1);
@@ -508,4 +432,80 @@ void feed_buffer(std::ifstream *image){
             std::cout << "Restart" << std::endl;
         }
     }
+}
+
+void calculate_MCU(){
+	uint8_t Num_chans = scanheader->num_chans;
+	if(Num_chans == 1)
+		MCU.push_back(1);
+	for(int i = 0; i < Num_chans; i++){
+		uint8_t ComponentID = scanheader->chan_specs[i].componentID;
+		bool found = false;
+		for(Channel_info *j = dctheader->chan_infos; j < (dctheader->chan_infos + dctheader->num_chans); j++){ 
+			if(j->identifier == ComponentID){
+				MCU.push_back(j->horz_sampling * j->vert_sampling);
+				found = true;
+				break;
+			}	
+		}
+        
+		if(!found)
+			std::cout << "ID of component not found\n";
+	}
+}
+
+void create_MCU_block(){
+	for(int i = 0; i < MCU.size(); i++){
+		for(int j = 0; j < MCU[i]; j++){
+			uint8_t ComponentID = scanheader->chan_specs[i].componentID;
+			Channel_info *k = dctheader->chan_infos;
+			for(;k < (dctheader->chan_infos + dctheader->num_chans); k++){ 
+				if(k->identifier == ComponentID)
+					break;
+			}
+			MCU_block.push_back(new Data_block(j%(k->vert_sampling), j/(k->horz_sampling)));
+		}
+	}
+}
+
+void read_MCU(std::ifstream *image){
+	int block_pos = 0;
+	for(int i = 0; i < MCU.size(); i++){
+		for(int j = 0; j < MCU[i]; j++){
+			read_data_block(MCU_block[block_pos++], image, i);
+        }
+	}
+}
+
+void read_data_block(Data_block *data_block, std::ifstream *image, uint8_t id){
+	uint8_t Huff_DC_ID = scanheader->chan_specs[id].Huffman_DC;
+	uint8_t Huff_AC_ID = scanheader->chan_specs[id].Huffman_AC;
+	
+	uint8_t i = 0;
+	for(; i < htables.size(); i++){
+		if(htables[i]->type == 0 && htables[i]->table_ID == Huff_DC_ID)
+			break;
+	}
+
+	uint8_t j = 0;
+	for(; j < htables.size(); j++){
+		if(htables[j]->type == 1 && htables[j]->table_ID == Huff_AC_ID)
+			break;
+	}
+
+	data_block->data[0][0] = decode_DC_coefficient(image, htables[i]);
+	uint8_t coeff_count = 1;
+	while(coeff_count < 64){
+		AC_coefficient *AC = decode_AC_coefficient(image, htables[j]);
+		if(AC->EOB){
+			return;
+        }
+		else{
+			coeff_count += AC->run_length;
+			uint8_t decoded_horz = (zigzag[coeff_count] >> 4) & 0xF;
+			uint8_t decoded_vert = (zigzag[coeff_count]) & 0xF;
+			data_block->data[decoded_vert][decoded_horz] = AC->value;
+		}
+	}
+
 }
