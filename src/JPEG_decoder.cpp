@@ -21,7 +21,7 @@ int main(){
                 break;
             case 0xDB:
                 std::cout << "Quantized table found\n";
-                qtable_vec.pushback(read_QTable(&image));
+                qtable_vec.push_back(read_QTable(&image));
                 break;
             case 0xC0:
                 std::cout << "BaseLine DCT found\n";
@@ -85,14 +85,15 @@ int main(){
                 uint16_t num_MCUs = ceil((float) dctheader->width/(max_sampling_chan.horz_sampling * 8)) * ceil((float) dctheader->height/(max_sampling_chan.vert_sampling * 8));
                 for(int i = 0; i < num_MCUs; i++){
                     for(int j = 0; j < MCU_block.size(); j++){
-                        for(int k = 0; k < 7; k++){
-                            for(int l = 0; l < 7; l++){
+                        for(int k = 0; k < 8; k++){
+                            for(int l = 0; l < 8; l++){
                                 MCU_block[j]->data[k][l] = 0;
                             }
                         }
                     }   
                     read_MCU(&image);
                     dequantize_MCU();
+                    DCT3();
                 }
                 //std::exit(0);
                 break;
@@ -511,12 +512,60 @@ void read_data_block(Data_block *data_block, std::ifstream *image, uint8_t id){
 
 }
 
-void dequantize_MCU(Quant_table *qtable){
-    for(Data_block &data_block: MCU_block){
-        for(int i = 0; i < 8; i++){
-            for(int j = 0; j < 8; j++){
-                data_block.data[i][j] = data_block.data[i][j] * qtable[i][j];
+void dequantize_MCU(){
+    uint8_t total_data_blocks = 0;
+    for(int i = 0; i < scanheader->num_chans; i++){
+        uint8_t componentid = (*((scanheader->chan_specs) + i)).componentID;
+        QTable* qtable;
+        for(int j = 0; j < dctheader->num_chans; j++){
+            if((*((dctheader->chan_infos) + j)).identifier == componentid){
+                uint8_t qtableid =(*((dctheader->chan_infos) + j)).qtableID;
+                for(int k = 0; k < qtable_vec.size(); k++){
+                    if(qtable_vec[k]->id == qtableid){
+                        qtable = qtable_vec[k];
+                        break;
+                    }
+                }
+                break;
             }
         }
+        for(int j = 0; j < MCU[i]; j++, total_data_blocks++){
+            for(int k = 0; k < 8; k++){
+                for(int l = 0; l < 8; l++){
+                    uint8_t qtable_entry = (k)*8 + l;
+                    MCU_block[total_data_blocks]->data[k][l] *= qtable->quant_table[qtable_entry];
+                }
+            }
+        }
+    }
+}
+
+void DCT3(){
+    long double pi = 3.14159265358979323846264338327950288419716939937510;
+    int16_t DCT_block[8][8];
+    for(int i = 0; i < MCU_block.size(); i++){
+        std::copy(&(MCU_block[i]->data[0][0]), &(MCU_block[i]->data[7][7]), &DCT_block[0][0]);
+        for(int y = 0; y < 8; y++){
+            for(int x = 0; x < 8; x++){
+                //std::cout << MCU_block[i]->data[y][x] << " ";
+                double sumu = 0;
+                for(int u = 0; u < 8; u++){
+                    double sumv = 0;
+                    for(int v = 0; v < 8; v++){
+                        double alphau = (u == 0)? 1/std::sqrt(2): 1;
+                        double alphav = (v == 0)? 1/std::sqrt(2): 1;
+                        sumv += alphau*alphav*DCT_block[u][v]*std::cos(((2*x+1)*u*pi)/16)*std::cos(((2*y+1)*v*pi)/16);
+                    }
+                }
+                std::cout << MCU_block[i]->data[y][x] << " ";
+                MCU_block[i]->data[y][x] = (1/4) * (sumu) + 128;
+                if(MCU_block[i]->data[y][x] > 255){
+                    MCU_block[i]->data[y][x] = 255;
+                }
+                //std::cout << MCU_block[i]->data[y][x] << " ";
+            }
+            std::cout << std::endl;
+        }
+        std::cout << std::endl;
     }
 }

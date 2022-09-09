@@ -7,6 +7,7 @@
 #include <cstdio>
 #include <cstdlib>
 #include <cmath>
+#include <algorithm>
 
 class JFIF_header{
 public:
@@ -113,7 +114,7 @@ int8_t pos = 7;
 bool skip_byte = false;
 std::vector<uint8_t> MCU = {};
 JFIF_header *header;
-std::vector<QTable> *qtable_vec;
+std::vector<QTable *> qtable_vec;
 DCTheader *dctheader;
 std::vector<HTable *> htables;
 HTable *htable;
@@ -134,7 +135,8 @@ uint8_t find_marker(std::ifstream *image);
 JFIF_header *read_header(std::ifstream *image);
 QTable *read_QTable(std::ifstream *image);
 DCTheader *read_DCTheader(std::ifstream *image);
-void dequantize_MCU(Quant_table *qtable)
+void dequantize_MCU();
+void DCT3();
 void calculate_MCU();
 void create_MCU_block();
 void read_MCU(std::ifstream *image);
