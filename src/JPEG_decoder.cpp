@@ -1,7 +1,7 @@
 #include "JPEG_decoder.hh"
 
 int main(){
-    std::filesystem::path p = "..\\example\\cat.jpg";
+    std::filesystem::path p = "..\\example\\u.jpg";
     std::ifstream image = open_image(p);
 
     image.read(reinterpret_cast<char*>(&cur_byte), 1);
@@ -90,10 +90,11 @@ int main(){
                                 MCU_block[j]->data[k][l] = 0;
                             }
                         }
-                    }   
+                    }
                     read_MCU(&image);
                     dequantize_MCU();
                     DCT3();
+                    ToRGB();
                 }
                 //std::exit(0);
                 break;
@@ -494,12 +495,20 @@ void read_data_block(Data_block *data_block, std::ifstream *image, uint8_t id){
 			break;
 	}
 
-	data_block->data[0][0] = pred + decode_DC_coefficient(image, htables[i]);
+	data_block->data[0][0] = decode_DC_coefficient(image, htables[i]);
+    //data_block->data[0][0] += pred;
     pred = data_block->data[0][0];
 	uint8_t coeff_count = 1;
 	while(coeff_count < 64){
 		AC_coefficient *AC = decode_AC_coefficient(image, htables[j]);
 		if(AC->EOB){
+            for(int i = 0; i < 8; i++){
+                for(int j = 0; j < 8; j++){
+                    std::cout << (int) data_block->data[i][j];
+                }
+            std::cout << std::endl;
+            }
+            std::cout << std::endl;
 			return;
         }
 		else{
@@ -510,6 +519,13 @@ void read_data_block(Data_block *data_block, std::ifstream *image, uint8_t id){
 		}
 	}
 
+    for(int i = 0; i < 8; i++){
+        for(int j = 0; j < 8; j++){
+            std::cout << (int) data_block->data[i][j];
+        }
+        std::cout << std::endl;
+    }
+    std::cout << std::endl;
 }
 
 void dequantize_MCU(){
@@ -536,31 +552,55 @@ void dequantize_MCU(){
                     MCU_block[total_data_blocks]->data[k][l] *= qtable->quant_table[qtable_entry];
                 }
             }
+
+            for(int k = 0; k < 8; k++){
+                for(int l = 0; l < 8; l++){
+                    std::cout << (int) MCU_block[total_data_blocks]->data[k][l];
+                }
+                std::cout << std::endl;
+            }
+            std::cout << std::endl;
+            
         }
     }
 }
 
 void DCT3(){
+    std::cout << "Decoded DCT3" << std::endl;
     long double pi = 3.14159265358979323846264338327950288419716939937510;
     int16_t DCT_block[8][8];
     for(int i = 0; i < MCU_block.size(); i++){
-        std::copy(&(MCU_block[i]->data[0][0]), &(MCU_block[i]->data[7][7]), &DCT_block[0][0]);
+        std::copy(&(MCU_block[i]->data[0][0]), &(MCU_block[i]->data[7][7]) + 1, &DCT_block[0][0]);
+        /*
+        for(int j = 0; j < 8; j++){
+            for(int k = 0; k < 8; k++){
+                std::cout << DCT_block[j][k] << " ";
+            }
+            std::cout << std::endl;
+        }
+        */
         for(int y = 0; y < 8; y++){
             for(int x = 0; x < 8; x++){
-                //std::cout << MCU_block[i]->data[y][x] << " ";
                 double sumu = 0;
                 for(int u = 0; u < 8; u++){
                     double sumv = 0;
                     for(int v = 0; v < 8; v++){
                         double alphau = (u == 0)? 1/std::sqrt(2): 1;
                         double alphav = (v == 0)? 1/std::sqrt(2): 1;
-                        sumv += alphau*alphav*DCT_block[u][v]*std::cos(((2*x+1)*u*pi)/16)*std::cos(((2*y+1)*v*pi)/16);
+                        double cosx = std::cos(((2*x+1)*u*pi)/16);
+                        double cosy = std::cos(((2*y+1)*v*pi)/16);
+                        double total = alphau*alphav*DCT_block[u][v]*cosx*cosy;
+                        sumv += total;
                     }
+                    sumu += sumv;
                 }
                 std::cout << MCU_block[i]->data[y][x] << " ";
-                MCU_block[i]->data[y][x] = (1/4) * (sumu) + 128;
+                MCU_block[i]->data[y][x] = ((0.25) * (sumu)) + 128;
                 if(MCU_block[i]->data[y][x] > 255){
                     MCU_block[i]->data[y][x] = 255;
+                }
+                else if(MCU_block[i]->data[y][x] < 0){
+                    MCU_block[i]->data[y][x] = 0;
                 }
                 //std::cout << MCU_block[i]->data[y][x] << " ";
             }
@@ -568,4 +608,73 @@ void DCT3(){
         }
         std::cout << std::endl;
     }
+}
+
+void ToRGB(){
+    std::cout << "Decoded RGB Values" << std::endl;
+    uint8_t red[8][8] = {{0}};
+    uint8_t green[8][8] = {{0}};
+    uint8_t blue[8][8] = {{0}};
+
+    for(int i = 0; i < 8; i++){
+        for(int j = 0; j < 8; j++){
+            long double colour_spec; 
+            colour_spec = (long long) ((double) MCU_block[0]->data[i][j] + 1.402*((double) (MCU_block[5]->data[i/2][j/2] - 128)));
+            if(colour_spec >= 0 && colour_spec <= 255){
+                red[i][j] = colour_spec;
+            }
+            else if(colour_spec < 0){
+                red[i][j] = 0;
+            }
+            else{
+                red[i][j] = 255;
+            }
+
+            colour_spec = (long long) ((double) MCU_block[0]->data[i][j] - 0.344136*((double) (MCU_block[4]->data[i/2][j/2] - 128)) - 0.714136*((double) (MCU_block[5]->data[i/2][j/2] - 128)));
+            if(colour_spec >= 0 && colour_spec <= 255){
+                green[i][j] = colour_spec;
+            }
+            else if(colour_spec < 0){
+                green[i][j] = 0;
+            }
+            else{
+                green[i][j] = 255;
+            }
+
+            colour_spec = (long long) ((double) MCU_block[0]->data[i][j] + 1.772*((double) (MCU_block[4]->data[i/2][j/2] - 128)));
+            if(colour_spec >= 0 && colour_spec <= 255){
+                blue[i][j] = colour_spec;
+            }
+            else if(colour_spec < 0){
+                blue[i][j] = 0;
+            }
+            else{
+                blue[i][j] = 255;
+            }
+        }
+    }
+
+    for(int i = 0; i < 8; i++){
+        for(int j = 0; j < 8; j++){
+            std::cout << (int) red[i][j] << " ";
+        }
+        std::cout << std::endl;
+    }
+    std::cout << std::endl;
+
+    for(int i = 0; i < 8; i++){
+        for(int j = 0; j < 8; j++){
+            std::cout << (int) green[i][j] << " ";
+        }
+        std::cout << std::endl;
+    }
+    std::cout << std::endl;
+
+    for(int i = 0; i < 8; i++){
+        for(int j = 0; j < 8; j++){
+            std::cout << (int) blue[i][j] << " ";
+        }
+        std::cout << std::endl;
+    }
+    std::cout << std::endl;
 }

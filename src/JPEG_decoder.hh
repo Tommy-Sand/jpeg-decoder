@@ -128,7 +128,7 @@ uint8_t zigzag[64] = {0x00, 0x10, 0x01, 0x02, 0x11, 0x20, 0x30, 0x21,
 					  0x53, 0x62, 0x71, 0x72, 0x63, 0x54, 0x45, 0x36,
 					  0x27, 0x37, 0x46, 0x55, 0x64, 0x73, 0x74, 0x65,
 					  0x56, 0x47, 0x57, 0x66, 0x75, 0x76, 0x67, 0x77};
-uint8_t pred = 0;
+int16_t pred = 0;
 
 std::ifstream open_image(std::filesystem::path p);
 uint8_t find_marker(std::ifstream *image);
@@ -149,3 +149,4 @@ Scan_header *read_Scan_header(std::ifstream *image);
 void feed_buffer(std::ifstream *image);
 int decode_DC_coefficient(std::ifstream *image, HTable *htable);
 AC_coefficient *decode_AC_coefficient(std::ifstream *image, HTable *htable);
+void ToRGB();
