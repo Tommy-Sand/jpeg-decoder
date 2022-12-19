@@ -175,16 +175,22 @@ QTable *read_QTable(std::ifstream *image){
         Qtable[i] = new uint16_t[8];
     }
 
-    std::cout << "QTable" << std::endl;
     for(int i = 0; i < 64; i++){
-        std::cout << "QTable" << std::endl;
         uint8_t decoded_horz = (zigzag[i] >> 4) & 0xF;
 		uint8_t decoded_vert = (zigzag[i]) & 0xF;
         Qtable[decoded_vert][decoded_horz] = (uint8_t) *(buffer + i + 1);
+    }
+
+    /*
+    //For debugging purposes
+    std::cout << "QTable" << std::endl;
+    for(int i = 0; i < 64; i++){
+        uint8_t decoded_horz = (zigzag[i] >> 4) & 0xF;
+		uint8_t decoded_vert = (zigzag[i]) & 0xF;
         std::cout << (int) Qtable[decoded_vert][decoded_horz] << " ";
     }
     std::cout << std::endl;
-
+    */
     return new QTable(Length, Size, ID, Qtable);
 }
 
@@ -322,7 +328,7 @@ void read_comment(std::ifstream *image){
     image->read(comment, Length - 2);
     comment[Length - 2] = '\0';
 
-    //std::cout << comment << "\n";
+    std::cout << comment << "\n";
 
     free(comment);
 }
@@ -515,24 +521,19 @@ void read_data_block(Data_block *data_block, std::ifstream *image, uint8_t id){
 	uint8_t coeff_count = 0;
 	while(coeff_count < 64){
 		AC_coefficient *AC = decode_AC_coefficient(image, htables[j]);
-		if(AC->EOB){
-            for(int i = 0; i < 8; i++){
-                for(int j = 0; j < 8; j++){
-                    std::cout << (int) data_block->data[i][j] << " ";
-                }
-            std::cout << std::endl;
-            }
-            std::cout << std::endl;
-			return;
-        }
-		else{
-			coeff_count += AC->run_length;
+		if(!(AC->EOB)){
+            coeff_count += AC->run_length;
 			uint8_t decoded_horz = (zigzag[coeff_count] >> 4) & 0xF;
 			uint8_t decoded_vert = (zigzag[coeff_count]) & 0xF;
 			data_block->data[decoded_vert][decoded_horz] = AC->value;
+        }
+		else{
+			break;
 		}
 	}
 
+    /*
+    //For debugging purposes
     for(int i = 0; i < 8; i++){
         for(int j = 0; j < 8; j++){
             std::cout << (int) data_block->data[i][j] << " ";
@@ -540,6 +541,7 @@ void read_data_block(Data_block *data_block, std::ifstream *image, uint8_t id){
         std::cout << std::endl;
     }
     std::cout << std::endl;
+    */
 }
 
 void dequantize_MCU(){
@@ -567,8 +569,13 @@ void dequantize_MCU(){
                     MCU_block[total_data_blocks]->data[k][l] *= qtable->quant_table[k][l];
                 }
             }
+        }
+    }
 
-            
+    /*
+    //For debugging purposes
+    for(int i = 0; i < scanheader->num_chans; i++){
+        for(int j = 0; j < MCU[i]; j++, total_data_blocks++){
             for(int k = 0; k < 8; k++){
                 for(int l = 0; l < 8; l++){
                     std::cout << (int) MCU_block[total_data_blocks]->data[k][l] << " ";
@@ -576,25 +583,16 @@ void dequantize_MCU(){
                 std::cout << std::endl;
             }
             std::cout << std::endl;
-            
         }
     }
+    */
 }
 
 void DCT3(){
-    std::cout << "Decoded DCT3" << std::endl;
     long double pi = 3.14159265358979323846264338327950288419716939937510;
     int16_t DCT_block[8][8];
     for(int i = 0; i < MCU_block.size(); i++){
         std::copy(&(MCU_block[i]->data[0][0]), &(MCU_block[i]->data[7][7]) + 1, &DCT_block[0][0]);
-        /*
-        for(int j = 0; j < 8; j++){
-            for(int k = 0; k < 8; k++){
-                std::cout << DCT_block[j][k] << " ";
-            }
-            std::cout << std::endl;
-        }
-        */
         for(int y = 0; y < 8; y++){
             for(int x = 0; x < 8; x++){
                 double sumu = 0;
@@ -622,6 +620,7 @@ void DCT3(){
 
         /*
         // For debugging purposes
+        std::cout << "Decoded DCT3" << std::endl;
         for(int y = 0; y < 8; y++){
             for(int x = 0; x < 8; x++){
                 std::cout << MCU_block[i]->data[y][x] << " ";
@@ -642,7 +641,6 @@ void ToRGB(){
     uint8_t blue[8][8] = {{0}};
 
     for(int count = 0; count < 4; count++){
-        std::cout << count << std::endl;
         for(int i = 0; i < 8; i++){
             for(int j = 0; j < 8; j++){
                 long double colour_spec; 
@@ -681,6 +679,9 @@ void ToRGB(){
             }
         }
 
+        /*
+        //For debugging purposes
+        std::cout << count << std::endl;
         for(int i = 0; i < 8; i++){
             for(int j = 0; j < 8; j++){
                 std::cout << (int) red[i][j] << " ";
@@ -704,5 +705,6 @@ void ToRGB(){
             std::cout << std::endl;
         }
         std::cout << std::endl;
+        */
     }
 }
