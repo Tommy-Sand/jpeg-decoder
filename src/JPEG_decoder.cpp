@@ -50,7 +50,7 @@ int main(){
                             std::cout << (int) htable->symbol_array[i][j] << " ";
                     }
 
-                    std::cout << "\n";
+                    std::cout << "\n" << std::dec;
                 }
                 */
 
@@ -69,7 +69,7 @@ int main(){
                  and is immediately followed by entropy-coded data.
                 */
 
-                std::cout << "Scan of the image found\n";
+                //std::cout << "Scan of the image found\n";
                 scanheader = read_Scan_header(&image);
                 image.read(reinterpret_cast<char*>(&cur_byte), 1);
                 calculate_MCU();
@@ -105,7 +105,7 @@ int main(){
             */
             case 0xFE:
                 //contains a comment
-                std::cout << "Comment found\n";
+                //std::cout << "Comment found\n";
                 read_comment(&image);
                 break;
         }
@@ -170,11 +170,20 @@ QTable *read_QTable(std::ifstream *image){
     uint8_t Size = (buffer[0] >> 4) & 0xF;
     uint8_t ID =  buffer[0] & 0xF;
 
-    uint16_t *Qtable = new uint16_t[64];
-
-    for(int i = 0; i < 64; i++){
-        Qtable[i] = *(buffer + 1 + i);
+    uint16_t **Qtable =  new uint16_t*[8];
+    for(int i = 0; i < 8; i++){
+        Qtable[i] = new uint16_t[8];
     }
+
+    std::cout << "QTable" << std::endl;
+    for(int i = 0; i < 64; i++){
+        std::cout << "QTable" << std::endl;
+        uint8_t decoded_horz = (zigzag[i] >> 4) & 0xF;
+		uint8_t decoded_vert = (zigzag[i]) & 0xF;
+        Qtable[decoded_vert][decoded_horz] = (uint8_t) *(buffer + i + 1);
+        std::cout << (int) Qtable[decoded_vert][decoded_horz] << " ";
+    }
+    std::cout << std::endl;
 
     return new QTable(Length, Size, ID, Qtable);
 }
@@ -222,6 +231,10 @@ Scan_header *read_Scan_header(std::ifstream *image){
 	uint8_t i = 0;
     uint8_t Num_chans = Buffer[i++];
     Chan_specifier *Chan_specs = new Chan_specifier[Num_chans];
+    pred = new int16_t[Num_chans]; //This should be moved to a better place since creating the prediction array should be in read_Scan_header
+    for(int i = 0; i < Num_chans; i++){
+        pred[i] = 0;
+    }
     for(uint8_t j = 0; j < Num_chans; j++){
     	Chan_specs[j].componentID = Buffer[i++];
 		Chan_specs[j].Huffman_DC = (Buffer[i] >> 4) & 0xF;
@@ -309,7 +322,7 @@ void read_comment(std::ifstream *image){
     image->read(comment, Length - 2);
     comment[Length - 2] = '\0';
 
-    std::cout << comment << "\n";
+    //std::cout << comment << "\n";
 
     free(comment);
 }
@@ -411,7 +424,8 @@ AC_coefficient *decode_AC_coefficient(std::ifstream *image, HTable *htable){
         int difference = 2 * ((1 << (Size - 1)) - Value) - 1;
         Value = - (Value + difference);
     }
-    return new AC_coefficient(false, RLength, Value);
+
+    return new AC_coefficient(false, ++RLength, Value);
 }
 
 void feed_buffer(std::ifstream *image){
@@ -496,15 +510,15 @@ void read_data_block(Data_block *data_block, std::ifstream *image, uint8_t id){
 	}
 
 	data_block->data[0][0] = decode_DC_coefficient(image, htables[i]);
-    //data_block->data[0][0] += pred;
-    pred = data_block->data[0][0];
-	uint8_t coeff_count = 1;
+    data_block->data[0][0] += pred[id];
+    pred[id] = data_block->data[0][0];
+	uint8_t coeff_count = 0;
 	while(coeff_count < 64){
 		AC_coefficient *AC = decode_AC_coefficient(image, htables[j]);
 		if(AC->EOB){
             for(int i = 0; i < 8; i++){
                 for(int j = 0; j < 8; j++){
-                    std::cout << (int) data_block->data[i][j];
+                    std::cout << (int) data_block->data[i][j] << " ";
                 }
             std::cout << std::endl;
             }
@@ -521,7 +535,7 @@ void read_data_block(Data_block *data_block, std::ifstream *image, uint8_t id){
 
     for(int i = 0; i < 8; i++){
         for(int j = 0; j < 8; j++){
-            std::cout << (int) data_block->data[i][j];
+            std::cout << (int) data_block->data[i][j] << " ";
         }
         std::cout << std::endl;
     }
@@ -530,6 +544,8 @@ void read_data_block(Data_block *data_block, std::ifstream *image, uint8_t id){
 
 void dequantize_MCU(){
     uint8_t total_data_blocks = 0;
+
+    std::cout << "Dequatized MCU" << std::endl;
     for(int i = 0; i < scanheader->num_chans; i++){
         uint8_t componentid = (*((scanheader->chan_specs) + i)).componentID;
         QTable* qtable;
@@ -548,14 +564,14 @@ void dequantize_MCU(){
         for(int j = 0; j < MCU[i]; j++, total_data_blocks++){
             for(int k = 0; k < 8; k++){
                 for(int l = 0; l < 8; l++){
-                    uint8_t qtable_entry = (k)*8 + l;
-                    MCU_block[total_data_blocks]->data[k][l] *= qtable->quant_table[qtable_entry];
+                    MCU_block[total_data_blocks]->data[k][l] *= qtable->quant_table[k][l];
                 }
             }
 
+            
             for(int k = 0; k < 8; k++){
                 for(int l = 0; l < 8; l++){
-                    std::cout << (int) MCU_block[total_data_blocks]->data[k][l];
+                    std::cout << (int) MCU_block[total_data_blocks]->data[k][l] << " ";
                 }
                 std::cout << std::endl;
             }
@@ -594,7 +610,6 @@ void DCT3(){
                     }
                     sumu += sumv;
                 }
-                std::cout << MCU_block[i]->data[y][x] << " ";
                 MCU_block[i]->data[y][x] = ((0.25) * (sumu)) + 128;
                 if(MCU_block[i]->data[y][x] > 255){
                     MCU_block[i]->data[y][x] = 255;
@@ -602,12 +617,22 @@ void DCT3(){
                 else if(MCU_block[i]->data[y][x] < 0){
                     MCU_block[i]->data[y][x] = 0;
                 }
-                //std::cout << MCU_block[i]->data[y][x] << " ";
+            }
+        }
+
+        /*
+        // For debugging purposes
+        for(int y = 0; y < 8; y++){
+            for(int x = 0; x < 8; x++){
+                std::cout << MCU_block[i]->data[y][x] << " ";
             }
             std::cout << std::endl;
         }
         std::cout << std::endl;
+        */
     }
+
+
 }
 
 void ToRGB(){
@@ -616,65 +641,68 @@ void ToRGB(){
     uint8_t green[8][8] = {{0}};
     uint8_t blue[8][8] = {{0}};
 
-    for(int i = 0; i < 8; i++){
-        for(int j = 0; j < 8; j++){
-            long double colour_spec; 
-            colour_spec = (long long) ((double) MCU_block[0]->data[i][j] + 1.402*((double) (MCU_block[5]->data[i/2][j/2] - 128)));
-            if(colour_spec >= 0 && colour_spec <= 255){
-                red[i][j] = colour_spec;
-            }
-            else if(colour_spec < 0){
-                red[i][j] = 0;
-            }
-            else{
-                red[i][j] = 255;
-            }
+    for(int count = 0; count < 4; count++){
+        std::cout << count << std::endl;
+        for(int i = 0; i < 8; i++){
+            for(int j = 0; j < 8; j++){
+                long double colour_spec; 
+                colour_spec = (long long) ((double) MCU_block[count]->data[i][j] + 1.402*((double) (MCU_block[5]->data[i/2][j/2] - 128)));
+                if(colour_spec >= 0 && colour_spec <= 255){
+                    red[i][j] = colour_spec;
+                }
+                else if(colour_spec < 0){
+                    red[i][j] = 0;
+                }
+                else{
+                    red[i][j] = 255;
+                }
 
-            colour_spec = (long long) ((double) MCU_block[0]->data[i][j] - 0.344136*((double) (MCU_block[4]->data[i/2][j/2] - 128)) - 0.714136*((double) (MCU_block[5]->data[i/2][j/2] - 128)));
-            if(colour_spec >= 0 && colour_spec <= 255){
-                green[i][j] = colour_spec;
-            }
-            else if(colour_spec < 0){
-                green[i][j] = 0;
-            }
-            else{
-                green[i][j] = 255;
-            }
+                colour_spec = (long long) ((double) MCU_block[count]->data[i][j] - 0.344136*((double) (MCU_block[4]->data[i/2][j/2] - 128)) - 0.714136*((double) (MCU_block[5]->data[i/2][j/2] - 128)));
+                if(colour_spec >= 0 && colour_spec <= 255){
+                    green[i][j] = colour_spec;
+                }
+                else if(colour_spec < 0){
+                    green[i][j] = 0;
+                }
+                else{
+                    green[i][j] = 255;
+                }
 
-            colour_spec = (long long) ((double) MCU_block[0]->data[i][j] + 1.772*((double) (MCU_block[4]->data[i/2][j/2] - 128)));
-            if(colour_spec >= 0 && colour_spec <= 255){
-                blue[i][j] = colour_spec;
-            }
-            else if(colour_spec < 0){
-                blue[i][j] = 0;
-            }
-            else{
-                blue[i][j] = 255;
+                colour_spec = (long long) ((double) MCU_block[count]->data[i][j] + 1.772*((double) (MCU_block[4]->data[i/2][j/2] - 128)));
+                if(colour_spec >= 0 && colour_spec <= 255){
+                    blue[i][j] = colour_spec;
+                }
+                else if(colour_spec < 0){
+                    blue[i][j] = 0;
+                }
+                else{
+                    blue[i][j] = 255;
+                }
             }
         }
-    }
 
-    for(int i = 0; i < 8; i++){
-        for(int j = 0; j < 8; j++){
-            std::cout << (int) red[i][j] << " ";
+        for(int i = 0; i < 8; i++){
+            for(int j = 0; j < 8; j++){
+                std::cout << (int) red[i][j] << " ";
+            }
+            std::cout << std::endl;
+        }
+        std::cout << std::endl;
+
+        for(int i = 0; i < 8; i++){
+            for(int j = 0; j < 8; j++){
+                std::cout << (int) green[i][j] << " ";
+            }
+            std::cout << std::endl;
+        }
+        std::cout << std::endl;
+
+        for(int i = 0; i < 8; i++){
+            for(int j = 0; j < 8; j++){
+                std::cout << (int) blue[i][j] << " ";
+            }
+            std::cout << std::endl;
         }
         std::cout << std::endl;
     }
-    std::cout << std::endl;
-
-    for(int i = 0; i < 8; i++){
-        for(int j = 0; j < 8; j++){
-            std::cout << (int) green[i][j] << " ";
-        }
-        std::cout << std::endl;
-    }
-    std::cout << std::endl;
-
-    for(int i = 0; i < 8; i++){
-        for(int j = 0; j < 8; j++){
-            std::cout << (int) blue[i][j] << " ";
-        }
-        std::cout << std::endl;
-    }
-    std::cout << std::endl;
 }
