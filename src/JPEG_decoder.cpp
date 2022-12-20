@@ -69,7 +69,7 @@ int main(){
                  and is immediately followed by entropy-coded data.
                 */
 
-                //std::cout << "Scan of the image found\n";
+                std::cout << "Scan of the image found\n";
                 scanheader = read_Scan_header(&image);
                 image.read(reinterpret_cast<char*>(&cur_byte), 1);
                 calculate_MCU();
@@ -96,7 +96,6 @@ int main(){
                     DCT3();
                     ToRGB();
                 }
-                //std::exit(0);
                 break;
             }
             /*
@@ -105,7 +104,7 @@ int main(){
             */
             case 0xFE:
                 //contains a comment
-                //std::cout << "Comment found\n";
+                std::cout << "Comment found\n";
                 read_comment(&image);
                 break;
         }
@@ -546,8 +545,6 @@ void read_data_block(Data_block *data_block, std::ifstream *image, uint8_t id){
 
 void dequantize_MCU(){
     uint8_t total_data_blocks = 0;
-
-    std::cout << "Dequatized MCU" << std::endl;
     for(int i = 0; i < scanheader->num_chans; i++){
         uint8_t componentid = (*((scanheader->chan_specs) + i)).componentID;
         QTable* qtable;
@@ -572,8 +569,10 @@ void dequantize_MCU(){
         }
     }
 
-    /*
+    
     //For debugging purposes
+    std::cout << "Dequatized MCU" << std::endl;
+    total_data_blocks = 0;
     for(int i = 0; i < scanheader->num_chans; i++){
         for(int j = 0; j < MCU[i]; j++, total_data_blocks++){
             for(int k = 0; k < 8; k++){
@@ -585,7 +584,7 @@ void dequantize_MCU(){
             std::cout << std::endl;
         }
     }
-    */
+    
 }
 
 void DCT3(){
@@ -617,10 +616,12 @@ void DCT3(){
                 }
             }
         }
+    }
 
-        /*
-        // For debugging purposes
-        std::cout << "Decoded DCT3" << std::endl;
+    /*
+    // For debugging purposes
+    std::cout << "Decoded DCT3" << std::endl;
+    for(int i = 0; i < MCU_block.size(); i++){
         for(int y = 0; y < 8; y++){
             for(int x = 0; x < 8; x++){
                 std::cout << MCU_block[i]->data[y][x] << " ";
@@ -628,14 +629,11 @@ void DCT3(){
             std::cout << std::endl;
         }
         std::cout << std::endl;
-        */
     }
-
-
+    */
 }
 
 void ToRGB(){
-    std::cout << "Decoded RGB Values" << std::endl;
     uint8_t red[8][8] = {{0}};
     uint8_t green[8][8] = {{0}};
     uint8_t blue[8][8] = {{0}};
@@ -678,9 +676,12 @@ void ToRGB(){
                 }
             }
         }
+    }
 
-        /*
-        //For debugging purposes
+    /*
+    //For debugging purposes
+    std::cout << "Decoded RGB Values" << std::endl;
+    for(int count = 0; count < 4; count++){
         std::cout << count << std::endl;
         for(int i = 0; i < 8; i++){
             for(int j = 0; j < 8; j++){
@@ -705,6 +706,7 @@ void ToRGB(){
             std::cout << std::endl;
         }
         std::cout << std::endl;
-        */
+        
     }
+    */
 }
