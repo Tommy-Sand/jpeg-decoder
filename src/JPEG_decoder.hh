@@ -9,29 +9,18 @@
 #include <cmath>
 #include <algorithm>
 
-class jpeg_image{
-public:
-    jpeg_image();
-    jpeg_image(const char* path);
-    jpeg_image(void *data, uint64_t size);
-    decode_header;
-    decode_quant_table;
-    decode_comments;
-    decode_huffman;
-    decode_image;
+//change to struct
+struct Chan_specifier{
+    uint8_t componentID;
+    uint8_t Huffman_DC;
+    uint8_t Huffman_AC;
+};
 
-private:
-    find_markers();
-
-    std::filesystem::path p;
-    std::ifstream image;
-    uint8_t *data;
-    uint64_t size;
-    Header header;
-    Huffman_table huff_table;
-    DCT_header dct_header;
-    Quant_table quant_table;
-    Scan_header scan_header;
+struct Channel_info{
+    uint8_t identifier;
+    uint8_t horz_sampling;
+    uint8_t vert_sampling;
+    uint8_t qtableID;
 };
 
 class Header{
@@ -39,7 +28,7 @@ private:
     uint8_t *data;
     uint32_t size;
 
-}
+};
 
 class JFIF_header: public Header{
 public:
@@ -60,7 +49,7 @@ private:
 
 class Huffman_table{
 public:
-    huffman_table(uin8_t* data);
+    Huffman_table(uint8_t* data);
     void parse_data();
     uint32_t decode_coefficient();
 
@@ -74,9 +63,16 @@ private:
     std::vector<uint8_t> *symbol_array;
 };
 
-class DCT_header{
+class Frame_header{
 public:
-    DCTheader(uint8_t *data): data{data} {}
+    Frame_header(uint8_t *data): data{data} {}
+    uint8_t *get_data() {return this->data;}
+    uint16_t get_length() {return this->length;}
+    uint8_t get_sample_percision() {return this->sample_percision;}
+    uint16_t get_height() {return this->height;}
+    uint16_t get_width() {return this->width;}
+    uint8_t get_num_chans() {return this->num_chans;}
+    struct Channel_info *get_chan_info(uint8_t index) { if(index < this->num_chans) return this->chan_infos + index;}
 
 private:
     uint8_t *data;
@@ -85,12 +81,13 @@ private:
     uint16_t height;
     uint16_t width;
     uint8_t num_chans;
-    Channel_info *chan_infos;
+    struct Channel_info *chan_infos;
+
 };
 
 class Quant_table{
 public:
-    quant_table(uint8_t *data): data{data} {}
+    Quant_table(uint8_t *data): data{data} {}
 
 private:
     uint8_t *data;
@@ -114,17 +111,30 @@ private:
     uint8_t successive_approx;
 };
 
-//change to struct
-struct Chan_specifier{
-    uint8_t componentID;
-    uint8_t Huffman_DC;
-    uint8_t Huffman_AC;
-};
-
-class Channel_info{
+class jpeg_image{
 public:
-    uint8_t identifier;
-    uint8_t horz_sampling;
-    uint8_t vert_sampling;
-    uint8_t qtableID;
+    jpeg_image();
+    jpeg_image(const char* path);
+    jpeg_image(void *data, uint64_t size);
+    void decode_header();//TBD
+    void decode_quant_table();//TBD
+    void decode_comments();//TDB
+    void decode_huffman();//TBD
+    void decode_image();//TBD
+
+private:
+    void find_markers();
+
+    std::filesystem::path p;
+    std::ifstream image;
+    uint8_t *data;
+    uint64_t size = 0;
+    Frame_header frame_header;
+    /*
+    Header header;
+    Huffman_table huff_table;
+    DCT_header dct_header;
+    Quant_table quant_table;
+    Scan_header scan_header;
+    */
 };
