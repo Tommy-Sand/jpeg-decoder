@@ -1,3 +1,3 @@
-Frame_header::Frame_header(uint8_t *data){
+#include "jpeg_decoder.hh"
 
 }
