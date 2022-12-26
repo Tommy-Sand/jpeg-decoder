@@ -105,8 +105,18 @@ private:
 
 class Scan_header{
 public:
-	Scan_header(uint8_t *data): data{data} {}
-
+	Scan_header(uint8_t *data);
+    uint8_t *get_data() {return this->data;}
+    uint16_t get_length() {return this->length;}
+    uint8_t get_num_chans() {return this->num_chans;}
+    struct Chan_specifier *get_chan_spec(uint8_t index) { 
+        if(index < this->num_chans) return this->chan_specifiers + index;
+        else return nullptr;
+    }
+    uint16_t get_spectral_start() {return this->spectral_start;}
+    uint16_t get_spectral_end() {return this->spectral_end;}
+    uint16_t get_prev_approx() {return this->prev_approx;}
+    uint16_t get_succ_approx() {return this->succ_approx;}
 private:
     uint8_t *data;
     uint16_t length;
@@ -114,7 +124,8 @@ private:
     struct Chan_specifier *chan_specifiers;
     uint8_t spectral_start;
     uint8_t spectral_end;
-    uint8_t successive_approx;
+    uint8_t prev_approx;
+    uint8_t succ_approx;
 };
 
 class jpeg_image{
