@@ -23,7 +23,7 @@ Frame_header::Frame_header(uint8_t *data): data{data} {
     this->encoding_process = static_cast<Encoding>(marker_encoding_num);
 
     this->length = (uint16_t) *(data + (++pos)) << 8;
-    this->length = *(data + (++pos));
+    this->length += *(data + (++pos));
 
     this->precision = *(data + (++pos));
 
