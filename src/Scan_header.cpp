@@ -3,7 +3,7 @@
 Scan_header::Scan_header(uint8_t *data): data{data} {
     uint16_t pos = 1;
 
-    this->length = (uint16_t) *(data + (++pos));
+    this->length = ((uint16_t) *(data + (++pos))) << 8;
     this->length += *(data + (++pos));
 
     this->num_chans = *(data + (++pos));

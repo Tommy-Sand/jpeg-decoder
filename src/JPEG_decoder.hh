@@ -100,9 +100,15 @@ private:
 
 };
 
-class Quant_table{
+class Quantization_table{
 public:
-    Quant_table(uint8_t *data): data{data} {}
+    Quantization_table(uint8_t *data);
+    uint8_t *get_data() {return data;}
+    uint16_t get_length() {return length;}
+    uint8_t get_size() {return size;}
+    uint8_t get_id() {return id;}
+    uint16_t **get_quantization_table() {return quant_table}
+    void dequantize_matrix(uint8_t matrix);
 
 private:
     uint8_t *data;
