@@ -9,6 +9,8 @@
 #include <cmath>
 #include <algorithm>
 
+enum Encoding: uint8_t;
+
 //change to struct
 struct Chan_specifier{
     uint8_t componentID;
@@ -17,7 +19,7 @@ struct Chan_specifier{
 };
 
 struct Channel_info{
-    uint8_t identifier;
+    uint8_t id;
     uint8_t horz_sampling;
     uint8_t vert_sampling;
     uint8_t qtableID;
@@ -65,19 +67,23 @@ private:
 
 class Frame_header{
 public:
-    Frame_header(uint8_t *data): data{data} {}
+    Frame_header(uint8_t *data);
     uint8_t *get_data() {return this->data;}
     uint16_t get_length() {return this->length;}
-    uint8_t get_sample_percision() {return this->sample_percision;}
+    uint8_t get_precision() {return this->precision;}
     uint16_t get_height() {return this->height;}
     uint16_t get_width() {return this->width;}
     uint8_t get_num_chans() {return this->num_chans;}
-    struct Channel_info *get_chan_info(uint8_t index) { if(index < this->num_chans) return this->chan_infos + index;}
+    struct Channel_info *get_chan_info(uint8_t index) { 
+        if(index < this->num_chans) return this->chan_infos + index;
+        else return nullptr;
+    }
 
 private:
+    enum Encoding encoding_process;
     uint8_t *data;
     uint16_t length;
-    uint8_t sample_percision;
+    uint8_t precision;
     uint16_t height;
     uint16_t width;
     uint8_t num_chans;
@@ -129,7 +135,7 @@ private:
     std::ifstream image;
     uint8_t *data;
     uint64_t size = 0;
-    Frame_header frame_header;
+    Frame_header* frame_header;
     /*
     Header header;
     Huffman_table huff_table;
