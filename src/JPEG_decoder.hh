@@ -25,44 +25,60 @@ struct Channel_info{
     uint8_t qtableID;
 };
 
-class Header{
-private:
-    uint8_t *data;
-    uint32_t size;
-
-};
-
-class JFIF_header: public Header{
+class Comment{
 public:
-    JFIF_header(uint8_t *data): data{data} {}
-
+    Comment(uint8_t *data);
 private:
     uint8_t *data;
     uint16_t length;
-    uint64_t identfier;
-    uint16_t JFIF_version;
+    char *comment;
+};
+
+class APP_header{
+public:
+    APP_header(uint8_t *data);
+private:
+    uint8_t *data;
+    uint16_t length;
+};
+
+class JFIF_header: public APP_header{
+public:
+    JFIF_header(uint8_t *data);
+
+private:
+    uint16_t version;
     uint8_t dens_units;
-    uint16_t xdens;
-    uint16_t ydens;
-    uint8_t xthumbnail;
-    uint8_t ythumbnail;
-    std::vector<std::vector<std::vector<uint8_t>>> thumb;
+    uint16_t x_dens;
+    uint16_t y_dens;
+    uint8_t x_thumbnail;
+    uint8_t y_thumbnail;
+    uint16_t thumbnail_length;
+    uint8_t *thumbnail;
+};
+
+class Restart_interval{
+public:
+    Restart_interval(uint8_t *data);
+private:
+    uint8_t *data;
+    uint16_t num_MCUs; 
 };
 
 class Huffman_table{
 public:
     Huffman_table(uint8_t* data);
-    void parse_data();
     uint32_t decode_coefficient();
 
 private:
     uint8_t* data;
     uint16_t length;
     uint8_t type;
-    uint8_t table_ID;
-    int16_t *min_symbol;
-    int16_t *max_symbol;
-    std::vector<uint8_t> *symbol_array;
+    uint8_t table_id;
+    uint8_t *num_codes_len_i;
+    uint8_t *min_code_value;
+    uint8_t *max_code_value;
+    uint8_t **symbol_array;
 };
 
 class Frame_header{
@@ -159,5 +175,6 @@ private:
     DCT_header dct_header;
     Quant_table quant_table;
     Scan_header scan_header;
+    Comment *all comments;
     */
 };
