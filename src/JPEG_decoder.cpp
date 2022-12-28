@@ -39,12 +39,13 @@ void jpeg_image::find_markers(){
         if(data[i] == 0xFF && i + 1 < size && data[i+1] != 0xFF && data[i+1] != 0x00){
             switch(data[i+1]){
                 case 0xC0: //SOF Sequential
+
                 case 0xC1: //SOF Sequential extended
                 case 0xC2: //SOF progressive
                 case 0xC3: //Lossless
                     this->frame_header = new Frame_header(this->data + i);
                 case 0xC4:
-                    //Huffman
+                    
                 //Restart markers from 0 to 7
                 case 0xD0:
                 case 0xD1:
@@ -61,6 +62,11 @@ void jpeg_image::find_markers(){
                     //SOS
                 case 0xDB:
                     //Quantization
+                    //if(quantization size == 0)
+                        //make quantization table
+                    //else
+                        //add to quantization table
+                    break;
                 case 0xDD:
                     //restart interval
 
