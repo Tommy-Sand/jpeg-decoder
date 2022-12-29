@@ -1,4 +1,4 @@
-#include "jpeg_decoder.hh"
+#include "JPEG_decoder.hh"
 
 uint8_t zigzag[64] = {0x00, 0x10, 0x01, 0x02, 0x11, 0x20, 0x30, 0x21,
 					  0x12, 0x03, 0x04, 0x13, 0x22, 0x31, 0x40, 0x50,
@@ -9,14 +9,11 @@ uint8_t zigzag[64] = {0x00, 0x10, 0x01, 0x02, 0x11, 0x20, 0x30, 0x21,
 					  0x27, 0x37, 0x46, 0x55, 0x64, 0x73, 0x74, 0x65,
 					  0x56, 0x47, 0x57, 0x66, 0x75, 0x76, 0x67, 0x77};
 
-Quantization_table::Quantization_table(uint8_t *data): data{data} {
-    uint16_t pos = 1;
-
-    this->length = ((uint16_t) *(data + (++pos))) << 8;
-    this->length += *(data + (++pos));
+Quantization_table::Quantization_table(uint8_t *data) {
+    uint16_t pos = 0;
 
     this->percision = ((*(data + (++pos)) >> 4)* 8) + 8;
-    this->id = *(data + (++pos)) & 0xF;
+    this->id = *(data + pos) & 0xF;
 
     this->quant_table = new uint16_t*[8];
     for(int i = 0; i < 8; i++)
@@ -30,4 +27,5 @@ Quantization_table::Quantization_table(uint8_t *data): data{data} {
             this->quant_table[vert][horz] = (this->quant_table[vert][horz] << 8) + *(data + (++pos));
     }
     
+	this->length = pos;
 }

@@ -1,4 +1,4 @@
-#include "jpeg_decoder.hh"
+#include "JPEG_decoder.hh"
 
 Comment::Comment(uint8_t *data): data{data} {
     uint16_t pos = 1;

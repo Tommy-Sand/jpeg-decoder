@@ -27,6 +27,7 @@ struct Channel_info{
 
 class Comment{
 public:
+	Comment() {};
     Comment(uint8_t *data);
 private:
     uint8_t *data;
@@ -45,6 +46,14 @@ private:
 class JFIF_header: public APP_header{
 public:
     JFIF_header(uint8_t *data);
+	uint16_t get_version() {return this->version;};
+	uint8_t get_dens_units() {return this->dens_units;};
+	uint16_t get_x_dens() {return this->x_dens;};
+	uint16_t get_y_dens() {return this->y_dens;};
+	uint8_t get_x_thumbnail() {return this->x_thumbnail;};
+	uint8_t get_y_thumbnail() {return this->y_thumbnail;};
+	uint16_t get_thumbnail_length() {return this->thumbnail_length;};
+	uint8_t *get_thumbnail() {return this->thumbnail;};
 
 private:
     uint16_t version;
@@ -59,7 +68,10 @@ private:
 
 class Restart_interval{
 public:
+	Restart_interval() {};
     Restart_interval(uint8_t *data);
+	uint8_t *get_data() {return this->data;};
+	uint16_t get_num_MCUs() {return this->num_MCUs;};
 private:
     uint8_t *data;
     uint16_t num_MCUs; 
@@ -67,12 +79,19 @@ private:
 
 class Huffman_table{
 public:
+	Huffman_table() {};
     Huffman_table(uint8_t* data);
+	uint16_t get_length() {return this->length;};
+	uint8_t get_type() {return this->type;};
+	uint8_t get_table_id() {return this->table_id;};
+	uint8_t *get_num_codes_len_i() {return this->num_codes_len_i;};
+	uint8_t *get_min_code_value() {return this->min_code_value;};
+	uint8_t *get_max_code_value() {return this->max_code_value;};
+	uint8_t **get_symbol_array() {return this->symbol_array;};
     uint32_t decode_coefficient();
 
 private:
-    uint8_t* data;
-    uint16_t length;
+	uint16_t length;
     uint8_t type;
     uint8_t table_id;
     uint8_t *num_codes_len_i;
@@ -83,6 +102,7 @@ private:
 
 class Frame_header{
 public:
+	Frame_header() {};
     Frame_header(uint8_t *data);
     uint8_t *get_data() {return this->data;}
     uint16_t get_length() {return this->length;}
@@ -109,8 +129,8 @@ private:
 
 class Quantization_table{
 public:
+	Quantization_table() {};
     Quantization_table(uint8_t *data);
-    uint8_t *get_data() {return data;}
     uint16_t get_length() {return length;}
     uint8_t get_precision() {return percision;}
     uint8_t get_id() {return id;}
@@ -118,7 +138,6 @@ public:
     void dequantize_matrix(uint8_t matrix);
 
 private:
-    uint8_t *data;
     uint16_t length;
     uint8_t percision;
     uint8_t id;
@@ -127,6 +146,7 @@ private:
 
 class Scan_header{
 public:
+	Scan_header() {};
 	Scan_header(uint8_t *data);
     uint8_t *get_data() {return this->data;}
     uint16_t get_length() {return this->length;}
@@ -152,13 +172,13 @@ private:
 
 class jpeg_image{
 public:
-    jpeg_image();
     jpeg_image(const char* path);
     jpeg_image(void *data, uint64_t size);
+	Huffman_table get_huffman_tables(int i, int j) {return huffman_tables[i][j];};
+	Quantization_table get_quantization_table(int i) {return quantization_tables[i];};
     void decode_header();//TBD
-    void decode_quant_table();//TBD
-    void decode_comments();//TDB
-    void decode_huffman();//TBD
+    void decode_quantization_tables(uint8_t *data);
+    void decode_huffman_tables(uint8_t *data);
     void decode_image();//TBD
 
 private:
@@ -168,13 +188,15 @@ private:
     std::ifstream image;
     uint8_t *data;
     uint64_t size = 0;
-    Frame_header* frame_header;
-    /*
-    Header header;
-    Huffman_table huff_table;
-    DCT_header dct_header;
-    Quant_table quant_table;
-    Scan_header scan_header;
-    Comment *all comments;
-    */
+	bool frame_header_read;
+    Frame_header frame_header;
+	std::vector<Scan_header> scan_headers;
+	uint8_t num_quantization_tables;
+	Quantization_table quantization_tables[4];
+	std::vector<Comment> comments;
+	uint8_t num_huffman_tables;
+	Huffman_table huffman_tables[2][4];
+	std::vector<APP_header> app_headers;
+	bool restart_interval_read;
+	Restart_interval restart_interval;
 };

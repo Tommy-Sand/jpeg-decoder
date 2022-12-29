@@ -1,4 +1,4 @@
-#include "jpeg_decoder.hh"
+#include "JPEG_decoder.hh"
 
 Restart_interval::Restart_interval(uint8_t *data): data{data} {
     uint8_t pos = 1;

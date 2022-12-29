@@ -1,4 +1,4 @@
-#include "jpeg_decoder.hh"
+#include "JPEG_decoder.hh"
 
 enum Encoding: uint8_t {
     BaseSeq_huff_DCT = 0x0,

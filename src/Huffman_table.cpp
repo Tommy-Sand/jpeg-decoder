@@ -1,10 +1,7 @@
-#include "jpeg_decoder.hh"
+#include "JPEG_decoder.hh"
 
-Huffman_table::Huffman_table(uint8_t *data): data{data} {
-    uint16_t pos = 1;
-
-    this->length = *(data + (++pos)) << 8;
-    this->length += *(data + (++pos));
+Huffman_table::Huffman_table(uint8_t *data) {
+    uint16_t pos = 0;
 
     this->type = *(data + (++pos)) >> 4;
     this->table_id = *(data + pos) & 0xF;
@@ -26,5 +23,5 @@ Huffman_table::Huffman_table(uint8_t *data): data{data} {
         this->min_code_value[i] = this->symbol_array[i][0];
         this->max_code_value[i] = this->symbol_array[i][num_codes-1];
     }
-
+	this->length = pos;
 }

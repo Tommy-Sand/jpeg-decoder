@@ -1,4 +1,4 @@
-#include "jpeg_decoder.hh"
+#include "JPEG_decoder.hh"
 
 APP_header::APP_header(uint8_t *data): data{data} {
     this->length = (*(data + 2) << 8) + *(data + 3);

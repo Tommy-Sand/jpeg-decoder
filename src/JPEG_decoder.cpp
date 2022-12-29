@@ -1,8 +1,12 @@
-#include "jpeg_decoder.hh"
+#include "JPEG_decoder.hh"
 
-jpeg_image::jpeg_image(){}
 
 jpeg_image::jpeg_image(const char* path): p{path} {
+	this->frame_header_read = false;
+	this->num_quantization_tables = 0;
+	this->num_huffman_tables = 0;
+	this->restart_interval_read = 0;
+
     assert(std::filesystem::exists(p));
     image = std::ifstream (p, std::ios::binary);
     assert(image.is_open());
@@ -29,6 +33,7 @@ jpeg_image::jpeg_image(void *data, uint64_t size): data{(uint8_t *) data}, size{
 void jpeg_image::find_markers(){
     //Look for marker 0xFFD8, indicating start of the image
     uint64_t SOI_marker = -1;
+	bool EOI_marker = false;
     for(int i = 0; i < size; i++){
         if(data[i] == 0xFF && i + 1 < size && data[i+1] == 0xD8)
             SOI_marker = i;
@@ -36,16 +41,18 @@ void jpeg_image::find_markers(){
 
     //Look for all other markers
     for(int i = SOI_marker + 2; i < size; i++){
+		if(EOI_marker)
+			break;
         if(data[i] == 0xFF && i + 1 < size && data[i+1] != 0xFF && data[i+1] != 0x00){
             switch(data[i+1]){
                 case 0xC0: //SOF Sequential
-
                 case 0xC1: //SOF Sequential extended
                 case 0xC2: //SOF progressive
-                case 0xC3: //Lossless
-                    this->frame_header = new Frame_header(this->data + i);
+                    this->frame_header = Frame_header(this->data + i);
+					break;
                 case 0xC4:
-                    
+                    this->decode_huffman_tables(this->data + i);
+					break;
                 //Restart markers from 0 to 7
                 case 0xD0:
                 case 0xD1:
@@ -56,22 +63,27 @@ void jpeg_image::find_markers(){
                 case 0xD6:
                 case 0xD7:
                     //restart marker
+					break;
                 case 0xD9:
                     //EOI
+					EOI_marker = true;
+					break;
                 case 0xDA:
                     //SOS
+					this->scan_headers.push_back(Scan_header(this->data + i));
+					break;
                 case 0xDB:
                     //Quantization
-                    //if(quantization size == 0)
-                        //make quantization table
-                    //else
-                        //add to quantization table
+					this->decode_quantization_tables(this->data + i);
                     break;
                 case 0xDD:
                     //restart interval
-
+					this->restart_interval = Restart_interval(this->data + i);
+					break;
                 //All possible app headers from 0-F. Call decode header
                 case 0xE0:
+					this->app_headers.push_back(JFIF_header(this->data + i));
+					break;
                 case 0xE1:
                 case 0xE2:
                 case 0xE3:
@@ -87,15 +99,36 @@ void jpeg_image::find_markers(){
                 case 0xED:
                 case 0xEE:
                 case 0xEF:
-                    //
+                    
                     break;
                 case 0xFE:
                     //comment
+					this->comments.push_back(Comment(data + i));
                     break;
 
             }
         }
-
-
     }
+}
+
+void jpeg_image::decode_huffman_tables(uint8_t *data){
+	uint16_t length = (*(data + 2) << 8) + *(data + 3);
+	data += 3;
+	for(int i = length - 2; i > 0;){
+		Huffman_table new_huffman_table = Huffman_table(data);
+		uint8_t type = new_huffman_table.get_type();
+		uint8_t table_id = new_huffman_table.get_table_id();
+		huffman_tables[type][table_id] = new_huffman_table; 
+		i -= new_huffman_table.get_length();
+	}
+}
+
+void jpeg_image::decode_quantization_tables(uint8_t *data){
+	uint16_t length = (*(data + 2) << 8) + *(data + 3);
+	data += 3;
+	for(int i = length - 2; i > 0;){
+		Quantization_table new_quant_table = Quantization_table(data);
+		this->quantization_tables[new_quant_table.get_id()] = new_quant_table;
+		i -= new_quant_table.get_length();
+	}	
 }
