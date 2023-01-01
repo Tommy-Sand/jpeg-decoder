@@ -49,6 +49,7 @@ void jpeg_image::find_markers(){
                 case 0xC1: //SOF Sequential extended
                 case 0xC2: //SOF progressive
                     this->frame_header = Frame_header(this->data + i);
+					this->setup_image();
 					break;
                 case 0xC4:
                     this->decode_huffman_tables(this->data + i);
@@ -71,6 +72,8 @@ void jpeg_image::find_markers(){
                 case 0xDA:
                     //SOS
 					this->scan_headers.push_back(Scan_header(this->data + i));
+					i += this->scan_headers[this->scan_headers.size() - 1].get_length();
+					this->entropy_decode(this->data);
 					break;
                 case 0xDB:
                     //Quantization
@@ -131,4 +134,34 @@ void jpeg_image::decode_quantization_tables(uint8_t *data){
 		this->quantization_tables[new_quant_table.get_id()] = new_quant_table;
 		i -= new_quant_table.get_length();
 	}	
+}
+
+void jpeg_image::setup_image() {
+	//find largest Horizontal and Vertical sampling ratio
+	uint8_t largest_horz = 0;
+	uint8_t largest_vert = 0;
+	uint16_t *blocks_per_channel = new uint16_t[this->frame_header.get_num_chans()];
+	for(int i = 0; i < this->frame_header.get_num_chans(); i++){
+		struct Channel_info chan_info = *(this->frame_header.get_chan_info(i));
+		largest_horz = chan_info.horz_sampling > largest_horz ? chan_info.horz_sampling : largest_horz;
+		largest_vert = chan_info.vert_sampling > largest_vert ? chan_info.vert_sampling : largest_vert;
+		blocks_per_channel[i] = chan_info.horz_sampling * chan_info.vert_sampling;
+	}
+
+	//Find how many rows and columns of image blocks are needed
+	uint16_t horz_blocks = floor(((float) this->frame_header.get_height() / (largest_horz*8)) + 0.5);
+	uint16_t vert_blocks = floor(((float) this->frame_header.get_width() / (largest_vert*8)) + 0.5);
+	this->decoded_image_data = new struct Image_block*[vert_blocks];
+	for(uint16_t i = 0; i < vert_blocks; i++){
+		this->decoded_image_data[i] = new struct Image_block[horz_blocks];
+		for(int j = 0; j < horz_blocks; j++) {
+			this->decoded_image_data[i][j].components = new struct Component[this->frame_header.get_num_chans()];
+			for(int k = 0; k < this->frame_header.get_num_chans(); k++){
+				struct Component *component = (this->decoded_image_data[i][j].components) + k;
+				component->num_data_blocks = blocks_per_channel[k];
+				component->data_blocks = new uint8_t[component->num_data_blocks][8][8];
+				
+			}
+		}
+	}
 }
