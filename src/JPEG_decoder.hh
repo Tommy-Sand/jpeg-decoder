@@ -25,6 +25,15 @@ struct Channel_info{
     uint8_t qtableID;
 };
 
+struct Component{
+	uint32_t num_data_blocks;
+	uint8_t (*data_blocks)[8][8];
+};
+
+struct Image_block{
+	struct Component *components; 
+};
+
 class Comment{
 public:
 	Comment() {};
@@ -85,8 +94,8 @@ public:
 	uint8_t get_type() {return this->type;};
 	uint8_t get_table_id() {return this->table_id;};
 	uint8_t *get_num_codes_len_i() {return this->num_codes_len_i;};
-	uint8_t *get_min_code_value() {return this->min_code_value;};
-	uint8_t *get_max_code_value() {return this->max_code_value;};
+	int16_t *get_min_code_value() {return this->min_code_value;};
+	int16_t *get_max_code_value() {return this->max_code_value;};
 	uint8_t **get_symbol_array() {return this->symbol_array;};
     uint32_t decode_coefficient();
 
@@ -95,8 +104,8 @@ private:
     uint8_t type;
     uint8_t table_id;
     uint8_t *num_codes_len_i;
-    uint8_t *min_code_value;
-    uint8_t *max_code_value;
+    int16_t *min_code_value;
+    int16_t *max_code_value;
     uint8_t **symbol_array;
 };
 
@@ -176,11 +185,11 @@ public:
     jpeg_image(void *data, uint64_t size);
 	Huffman_table get_huffman_tables(int i, int j) {return huffman_tables[i][j];};
 	Quantization_table get_quantization_table(int i) {return quantization_tables[i];};
-    void decode_header();//TBD
     void decode_quantization_tables(uint8_t *data);
     void decode_huffman_tables(uint8_t *data);
-    void decode_image();//TBD
-
+	void decode_scan(uint8_t *data);
+	void setup_image();
+	void entropy_decode(uint8_t *data) {};
 private:
     void find_markers();
 
@@ -199,4 +208,5 @@ private:
 	std::vector<APP_header> app_headers;
 	bool restart_interval_read;
 	Restart_interval restart_interval;
+	struct Image_block **decoded_image_data; 
 };
