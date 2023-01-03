@@ -1,25 +1,21 @@
 #include "JPEG_decoder.hh"
 
-Scan_header::Scan_header(uint8_t **data) {
-	/*
-    uint16_t pos = 1;
+Scan_header::Scan_header(uint8_t **data) {	
+    this->length = **data << 8;
+    this->length += *(++(*data));
 
-    this->length = ((uint16_t) *(data + (++pos))) << 8;
-    this->length += *(data + (++pos));
-
-    this->num_chans = *(data + (++pos));
+    this->num_chans = *(++(*data));
 
     this->chan_specifiers = new struct Chan_specifier[this->num_chans];
     for(int i = 0; i < this->num_chans; i++){
-        this->chan_specifiers[i].componentID = *(data + (++pos));
-        this->chan_specifiers[i].Huffman_DC = *(data + (++pos)) >> 4;
-        this->chan_specifiers[i].Huffman_AC = *(data + pos) & 0xF;
+        this->chan_specifiers[i].componentID = *(++(*data));
+        this->chan_specifiers[i].Huffman_DC = (*(++(*data)) >> 4) & 0xF;
+        this->chan_specifiers[i].Huffman_AC = (**data) & 0xF;
     }
 
-    this->spectral_start = *(data + (++pos));
-    this->spectral_end = *(data + (++pos));
+    this->spectral_start = *(++(*data));
+    this->spectral_end = *(++(*data));
 
-    this->prev_approx = *(data + (++pos)) >> 4;
-    this->succ_approx = *(data + pos) & 0xF;
-	*/
+    this->prev_approx = (*(++(*data)) >> 4) & 0xF;
+    this->succ_approx = *(++(*data)) & 0xF;
 }
