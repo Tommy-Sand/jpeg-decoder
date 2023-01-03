@@ -1,6 +1,7 @@
 #include "JPEG_decoder.hh"
 
-Scan_header::Scan_header(uint8_t *data): data{data} {
+Scan_header::Scan_header(uint8_t **data) {
+	/*
     uint16_t pos = 1;
 
     this->length = ((uint16_t) *(data + (++pos))) << 8;
@@ -20,4 +21,5 @@ Scan_header::Scan_header(uint8_t *data): data{data} {
 
     this->prev_approx = *(data + (++pos)) >> 4;
     this->succ_approx = *(data + pos) & 0xF;
+	*/
 }
