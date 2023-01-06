@@ -25,4 +25,13 @@ Quantization_table::Quantization_table(uint8_t **data) {
             this->quant_table[vert][horz] = (this->quant_table[vert][horz] << 8) + *(++(*data));
     } 
 	this->length = 65 + 64 * (this->percision/16);
+	(*data)++;
+}
+
+void Quantization_table::dequantize(int16_t block[8][8]){
+	for(int i = 0; i < 8; i++){
+		for(int j = 0; j < 8; j++){
+			block[i][j] *= this->quant_table[i][j];
+		}
+	}
 }
