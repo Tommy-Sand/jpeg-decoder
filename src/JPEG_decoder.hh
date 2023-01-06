@@ -40,6 +40,18 @@ struct size{
 	uint16_t Y;
 };
 
+
+
+struct RGB{
+	uint8_t R;
+	uint8_t G;
+	uint8_t B;
+}
+
+struct RGB_block{
+	struct RGB rgb_block[8][8];
+}
+
 class Comment{
 public:
 	Comment() {};
@@ -197,6 +209,7 @@ private:
 	uint8_t get_bit(uint8_t **cpy_data, bool *EOS);
 	int16_t coefficient_decoding(uint16_t value, uint8_t size);
 	void IDCT(int16_t data_block[8][8]);
+	void convert_RGB();
     std::filesystem::path p;
     std::ifstream image;
 	//Used for entropy decoding
@@ -216,5 +229,6 @@ private:
 	bool restart_interval_read;
 	Restart_interval restart_interval;
 	struct size image_block_size;
-	struct Image_block **decoded_image_data; 
+	struct Image_block **decoded_image_data;
+	struct RGB *RGB_pixel_data;
 };

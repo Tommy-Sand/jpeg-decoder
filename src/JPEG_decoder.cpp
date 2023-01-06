@@ -309,7 +309,7 @@ uint8_t jpeg_image::get_bit(uint8_t **cpy_data, bool *EOS){
 	}
 	return (byte >> (7 - (pos++))) & 0x1;	
 }
-
+	
 struct Image_block jpeg_image::get_image_block(uint32_t index){
 	uint32_t horz = index % this->image_block_size.X;
 	uint32_t vert = index / this->image_block_size.X;
@@ -360,4 +360,17 @@ void jpeg_image::IDCT(int16_t data_block[8][8]){
             }
         }
     }
+}
+
+void jpeg_image::convert_RGB(){
+	uint16_t height = this->frame_header.get_height();
+	uint16_t width = this->frame_header.get_width();
+	RGB_pixel_data = new struct RGB[this->frame_header.get_height() * this->frame_header.get_width()];
+	
+	uint16_t horz_block_width = 0;
+	struct Component *components = this->decoder_image_data[0][0].components;
+	for(int i = 0; i < this->frame_header.get_num_chans(); i++){
+
+	}
+	uint16_t vert_block_width = 0; 
 }
