@@ -21,11 +21,12 @@ Huffman_table::Huffman_table(uint8_t **data) {
 			this->length++;
 		}
     }
+	(*data)++;
 
 	//Create max and min code values
-	int16_t code = 0;
-	this->min_code_value = new int16_t[16];
-	this->max_code_value = new int16_t[16];
+	int32_t code = 0;
+	this->min_code_value = new int32_t[16];
+	this->max_code_value = new int32_t[16];
 	for(int i = 0; i < 16; i++){
 		if(this->num_codes_len_i[i] == 0){
 			this->min_code_value[i] = -1;
@@ -38,4 +39,5 @@ Huffman_table::Huffman_table(uint8_t **data) {
 		this->max_code_value[i] = min_code_value[i] + (this->num_codes_len_i[i] - 1);
 		code = (this->max_code_value[i] + 1) << 1;
 	}
+
 }
