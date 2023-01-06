@@ -17,5 +17,5 @@ Scan_header::Scan_header(uint8_t **data) {
     this->spectral_end = *(++(*data));
 
     this->prev_approx = (*(++(*data)) >> 4) & 0xF;
-    this->succ_approx = *(++(*data)) & 0xF;
+    this->succ_approx = **data & 0xF;
 }

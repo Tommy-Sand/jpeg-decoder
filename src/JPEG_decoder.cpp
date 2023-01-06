@@ -75,7 +75,8 @@ void jpeg_image::find_markers(){
                 case 0xDA:
                     //SOS
 					this->scan_headers.push_back(Scan_header(&(++cpy_data)));
-					this->entropy_decode(&(++cpy_data), this->scan_headers[this->scan_headers.size() - 1]);
+					this->entropy_decode(this->scan_headers[this->scan_headers.size() - 1], &(++cpy_data));
+					cpy_data--;
 					break;
                 case 0xDB:
                     //Quantization
@@ -154,6 +155,8 @@ void jpeg_image::setup_image() {
 	//Find how many rows and columns of image blocks are needed
 	uint16_t horz_blocks = floor(((float) this->frame_header.get_height() / (largest_horz*8)) + 0.5);
 	uint16_t vert_blocks = floor(((float) this->frame_header.get_width() / (largest_vert*8)) + 0.5);
+	this->image_block_size.X = horz_blocks;
+	this->image_block_size.Y = vert_blocks;
 	this->decoded_image_data = new struct Image_block*[vert_blocks];
 	for(uint16_t i = 0; i < vert_blocks; i++){
 		this->decoded_image_data[i] = new struct Image_block[horz_blocks];
@@ -162,18 +165,19 @@ void jpeg_image::setup_image() {
 			for(int k = 0; k < this->frame_header.get_num_chans(); k++){
 				struct Component *component = (this->decoded_image_data[i][j].components) + k;
 				component->num_data_blocks = blocks_per_channel[k];
-				component->data_blocks = new uint8_t[component->num_data_blocks][8][8];
+				component->data_blocks = new int16_t[component->num_data_blocks][8][8]{{{0}}};
 			}
 		}
 	}
 }
 
-void jpeg_image::entropy_decode(uint8_t **data, Scan_header header){
-	/*
+void jpeg_image::entropy_decode(Scan_header header, uint8_t **cpy_data){
 	uint64_t data_block_index = 0;
-
+	bool EOS = false;
 	uint8_t total_num_chans = this->frame_header.get_num_chans();
 	uint8_t scan_num_chans = header.get_num_chans();
+	int16_t *pred = new int16_t[total_num_chans]{0}; 
+	//Build a read order array
 	uint8_t *read_order = new uint8_t[total_num_chans];
 	for(uint8_t i = 0; i < total_num_chans; i++){
 		struct Channel_info *frame_chan_info = this->frame_header.get_chan_info(i);
@@ -188,13 +192,172 @@ void jpeg_image::entropy_decode(uint8_t **data, Scan_header header){
 	}
 	
 	
-	uint8_t *track_read_order = new uint8_t[total_num_chans];
-	while(1){
-		
+
+	byte = *((*cpy_data)++);	
+	uint32_t max_index = this->image_block_size.X * this->image_block_size.Y;
+	for(uint32_t index = 0; EOS == false && index < max_index ; index++){
+		struct Image_block image_block = this->get_image_block(index);
+		for(int i = 0; i < total_num_chans; i++){
+			Quantization_table quant_table = this->get_quantization_table(this->frame_header.get_chan_info(i)->qtableID);
+			struct Component component = image_block.components[i];
+			Huffman_table huff_DC;
+			Huffman_table huff_AC;
+			uint8_t chan_id = this->frame_header.get_chan_info(i)->id;
+			for(int j = 0; j < scan_num_chans; j++){
+				struct Chan_specifier *chan_spec = header.get_chan_spec(j);
+				if(chan_spec->componentID != chan_id)
+					continue;
+				else{
+					huff_DC = this->get_huffman_table(0, chan_spec->Huffman_DC);	
+					huff_AC = this->get_huffman_table(1, chan_spec->Huffman_AC);
+					break;
+				}
+			}
+			for(int j = 0; j < read_order[i]; j++){
+				if(this->decode_dc(component.data_blocks[j], cpy_data, huff_DC, pred + i, &EOS) == 1)
+					return;
+				if(this->decode_ac(component.data_blocks[j], cpy_data, huff_AC, &EOS) == 1)
+					return;
+				quant_table.dequantize(component.data_blocks[j]);
+				this->IDCT(component.data_blocks[j]);
+				//RGB
+			}
+		}
 	}
-	*/
 }
 
-uint8_t jpeg_image::decode_dc(uint8_t data_block[8][8]) {
+uint8_t jpeg_image::decode_dc(int16_t data_block[8][8], uint8_t **cpy_data, Huffman_table huff, int16_t *pred, bool *EOS) {
+	uint8_t code_length = 0;
+	uint16_t code = 0;
+	uint8_t size = 0; 
+	int16_t symbol = 0;
+	int32_t *min_code_of_len = huff.get_min_code_values();
+	int32_t *max_code_of_len = huff.get_max_code_values();
+	uint8_t **symbols = huff.get_symbol_arrays(); 
+	do{
+		code = (code << 1) + get_bit(cpy_data, EOS);
+		if(*EOS == true)
+			return 1;
+		code_length++;
+		if(code <= max_code_of_len[code_length - 1]){
+			uint16_t code_index = code - min_code_of_len[code_length - 1];
+			size = symbols[code_length - 1][code_index];
+			break;
+		}
+	}while(code_length < 12);
+	
+	for(int i = 0; i < size; i++)
+		symbol = (symbol << 1) + get_bit(cpy_data, EOS);
+	int16_t value = coefficient_decoding(symbol, size);
+	data_block[0][0] = *pred + value;
+	*pred = data_block[0][0];
+
 	return 0;
-} 
+}
+
+uint8_t jpeg_image::decode_ac(int16_t data_block[8][8], uint8_t **cpy_data, Huffman_table huff, bool *EOS){
+	int32_t *min_code_of_len = huff.get_min_code_values();
+	int32_t *max_code_of_len = huff.get_max_code_values();
+	uint8_t **symbols = huff.get_symbol_arrays(); 
+
+	for(int i = 1; i <= 64; i++){
+		uint8_t code_length = 0;
+		uint16_t code = 0;
+		uint8_t symbol = 0;
+		uint8_t runlength = 0;
+		uint8_t size = 0;
+		int16_t value = 0;
+
+		do{
+			code = (code << 1) + get_bit(cpy_data, EOS);
+			if(*EOS == true)
+				return 1;
+	
+			code_length++;
+			if(code <= max_code_of_len[code_length - 1]){
+				uint16_t code_index = code - min_code_of_len[code_length - 1];
+				symbol = symbols[code_length - 1][code_index];
+				if(symbol == 0x0)
+					return 0;
+				runlength = (symbol >> 4) & 0xF;
+				size = symbol & 0xF;
+				break;
+			}
+		}while(code_length <= 16);
+		
+		for(int j = 0; j < size; j++)
+			value = (value << 1) + get_bit(cpy_data, EOS);
+		value = this->coefficient_decoding(value, size); 
+		
+		i += runlength;
+		uint8_t vert = zigzag[i] & 0xF;
+		uint8_t horz = (zigzag[i] >> 4) &0xF;
+		data_block[vert][horz] = value;
+	}
+
+	return 0;
+}
+
+uint8_t jpeg_image::get_bit(uint8_t **cpy_data, bool *EOS){
+	if(pos == 8){ //get new byte
+		byte = *((*cpy_data)++);
+		pos = 0;
+		if(byte == 0xFF && **cpy_data == 0x00)
+			(*cpy_data)++;
+		else if(byte == 0xFF && **cpy_data != 0x00)
+			*EOS = true;
+	}
+	return (byte >> (7 - (pos++))) & 0x1;	
+}
+
+struct Image_block jpeg_image::get_image_block(uint32_t index){
+	uint32_t horz = index % this->image_block_size.X;
+	uint32_t vert = index / this->image_block_size.X;
+	return this->decoded_image_data[vert][horz];
+}
+
+int16_t jpeg_image::coefficient_decoding(uint16_t symbol, uint8_t size){
+	if(size == 0)
+		return 0;
+	uint8_t sign = symbol >> (size - 1) & 1;
+	if(sign == 0){ //negative 
+		int16_t base = - (1 << size) + 1;
+		return base + symbol;
+	}
+	return symbol;
+}
+
+void jpeg_image::IDCT(int16_t data_block[8][8]){
+	long double pi = 3.14159265358979323846264338327950288419716939937510;
+	int16_t base_data_block[8][8];
+	for(int i = 0; i < 8; i++){
+		for(int j = 0; j < 8; j++){
+			base_data_block[i][j] = data_block[i][j];
+		}
+	}
+
+	for(int y = 0; y < 8; y++){
+		for(int x = 0; x < 8; x++){
+			double sumu = 0;
+            for(int u = 0; u < 8; u++){
+            	double sumv = 0;
+                for(int v = 0; v < 8; v++){
+                    double alphau = (u == 0)? 1/std::sqrt(2): 1;
+                    double alphav = (v == 0)? 1/std::sqrt(2): 1;
+                    double cosx = std::cos(((2*x+1)*u*pi)/16);
+                    double cosy = std::cos(((2*y+1)*v*pi)/16);
+                    double total = alphau*alphav*base_data_block[u][v]*cosx*cosy;
+                    sumv += total;
+                }
+                sumu += sumv;
+            }
+            data_block[y][x] = ((0.25) * (sumu)) + 128;
+            if(data_block[y][x] > 255){
+                data_block[y][x] = 255;
+            }
+            else if(data_block[y][x] < 0){
+                data_block[y][x] = 0;
+            }
+        }
+    }
+}

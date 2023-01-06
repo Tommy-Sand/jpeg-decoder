@@ -8,11 +8,27 @@ uint8_t test_huffman_table_data[] = {0xFF, 0xC4, 0x00, 0x24, 0x11, 0x00, 0x03, 0
 int main(){
     jpeg_image jpeg = jpeg_image("..//example//u.jpg");
 
+	struct Image_block image_block = jpeg.get_image_block(0);
+	for(int i = 0; i < 3; i++){
+		struct Component component = image_block.components[i];
+		for(int j = 0; j < component.num_data_blocks; j++){
+			int16_t (*data_block)[8] = component.data_blocks[j];
+			for(int k = 0; k < 8; k++){
+				for(int l = 0; l < 8; l++){
+					std::cout << (int) data_block[k][l] << " ";
+				}
+				std::cout << std::endl;
+			}
+			std::cout << std::endl;
+		}
+	}
+	/*
 	uint8_t *test_DRI_marker_data = new uint8_t[]{0x00, 0x04, 0x05, 0x04};
 	uint8_t *cpy_test_DRI_marker_data = test_DRI_marker_data;
 
 	Restart_interval test_restart_interval = Restart_interval(&cpy_test_DRI_marker_data);
 	std::cout << "Interval: " << (int) test_restart_interval.get_num_MCUs() << std::endl;
+	*/
 
     /*
     Frame_header test_frame_header = jpeg.get_frame_header(); 
@@ -63,16 +79,16 @@ int main(){
 	/*
 	for(int i = 0; i < 2; i++){
 		for(int j = 0; j < 2; j++){
-			Huffman_table huffman_table = jpeg.get_huffman_tables(i, j);
+			Huffman_table huffman_table = jpeg.get_huffman_table(i, j);
 	
 			std::cout << std::dec << "length: " << (int) huffman_table.get_length() << std::endl;
 			std::cout << "type: " << (int) huffman_table.get_type() << std::endl;	
 			std::cout << "table_id: " << (int) huffman_table.get_table_id() << std::endl;
 			for(int i = 0; i < 16; i++){
-				std::cout << "Num of codes for " << i << ": "  << std::hex << (int) huffman_table.get_num_codes_len_i()[i] << "\t Min code value: " << (int) huffman_table.get_min_code_value()[i] << "\t Max code value: " << (int) huffman_table.get_max_code_value()[i] << std::endl;
+				std::cout << "Num of codes for " << i+1 << ": "  << std::hex << (int) huffman_table.get_num_codes_len_i()[i] << "\t Min code value: " << (int) huffman_table.get_min_code_values()[i] << "\t Max code value: " << (int) huffman_table.get_max_code_values()[i] << std::endl;
 				int symbol_size = huffman_table.get_num_codes_len_i()[i];
 				for(int j = 0; j < symbol_size; j++){
-					std::cout << (int) huffman_table.get_symbol_array()[i][j] << " ";
+					std::cout << (int) huffman_table.get_symbol_arrays()[i][j] << " ";
 				}	
 				std::cout << std::endl;
 			}

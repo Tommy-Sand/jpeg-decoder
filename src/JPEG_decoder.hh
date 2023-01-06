@@ -10,6 +10,7 @@
 #include <algorithm>
 
 enum Encoding: uint8_t;
+extern uint8_t zigzag[64]; 
 
 //change to struct
 struct Chan_specifier{
@@ -27,11 +28,16 @@ struct Channel_info{
 
 struct Component{
 	uint32_t num_data_blocks;
-	uint8_t (*data_blocks)[8][8];
+	int16_t (*data_blocks)[8][8];
 };
 
 struct Image_block{
 	struct Component *components; 
+};
+
+struct size{
+	uint16_t X;
+	uint16_t Y;
 };
 
 class Comment{
@@ -91,18 +97,17 @@ public:
 	uint8_t get_type() {return this->type;};
 	uint8_t get_table_id() {return this->table_id;};
 	uint8_t *get_num_codes_len_i() {return this->num_codes_len_i;};
-	int16_t *get_min_code_value() {return this->min_code_value;};
-	int16_t *get_max_code_value() {return this->max_code_value;};
-	uint8_t **get_symbol_array() {return this->symbol_array;};
-    uint32_t decode_coefficient();
+	int32_t *get_min_code_values() {return this->min_code_value;};
+	int32_t *get_max_code_values() {return this->max_code_value;};
+	uint8_t **get_symbol_arrays() {return this->symbol_array;};
 
 private:
 	uint16_t length;
     uint8_t type;
     uint8_t table_id;
     uint8_t *num_codes_len_i;
-    int16_t *min_code_value;
-    int16_t *max_code_value;
+    int32_t *min_code_value;
+    int32_t *max_code_value;
     uint8_t **symbol_array;
 };
 
@@ -128,7 +133,6 @@ private:
     uint16_t width;
     uint8_t num_chans;
     struct Channel_info *chan_infos;
-
 };
 
 class Quantization_table{
@@ -139,7 +143,7 @@ public:
     uint8_t get_precision() {return percision;}
     uint8_t get_id() {return id;}
     uint16_t **get_quantization_table() {return quant_table;}
-    void dequantize_matrix(uint8_t matrix);
+    void dequantize(int16_t block[8][8]);
 
 private:
     uint16_t length;
@@ -177,20 +181,27 @@ public:
     jpeg_image(const char* path);
     jpeg_image(void *data, uint64_t size);
 	Frame_header get_frame_header() {return frame_header;};
-	Huffman_table get_huffman_tables(int i, int j) {return huffman_tables[i][j];};
+	Huffman_table get_huffman_table(int i, int j) {return huffman_tables[i][j];};
 	Quantization_table get_quantization_table(int i) {return quantization_tables[i];};
 	Restart_interval get_restart_interval() {return restart_interval;};
+	struct Image_block get_image_block(uint32_t index);
     void decode_quantization_tables(uint8_t **data);
     void decode_huffman_tables(uint8_t **data);
 	void decode_scan(uint8_t **data);
 	void setup_image();
-	void entropy_decode(uint8_t **data, Scan_header header);
-	uint8_t decode_dc(uint8_t data_block[8][8]);
+	void entropy_decode(Scan_header header, uint8_t **cpy_data);
+	uint8_t decode_dc(int16_t data_block[8][8], uint8_t **cpy_data, Huffman_table huff, int16_t *pred, bool *EOS);
+	uint8_t decode_ac(int16_t data_block[8][8], uint8_t **cpy_data, Huffman_table huff, bool *EOS);
 private:
     void find_markers();
-
+	uint8_t get_bit(uint8_t **cpy_data, bool *EOS);
+	int16_t coefficient_decoding(uint16_t value, uint8_t size);
+	void IDCT(int16_t data_block[8][8]);
     std::filesystem::path p;
     std::ifstream image;
+	//Used for entropy decoding
+	uint8_t pos = 0;
+	uint8_t byte;
     uint8_t *data;
     uint64_t size = 0;
 	bool frame_header_read;
@@ -204,5 +215,6 @@ private:
 	std::vector<APP_header> app_headers;
 	bool restart_interval_read;
 	Restart_interval restart_interval;
+	struct size image_block_size;
 	struct Image_block **decoded_image_data; 
 };

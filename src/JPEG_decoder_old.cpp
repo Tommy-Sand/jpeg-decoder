@@ -1,7 +1,7 @@
-#include "JPEG_decoder.hh"
+#include "JPEG_decoder_old.hh"
 
 int main(){
-    std::filesystem::path p = "..\\example\\cat.jpg";
+    std::filesystem::path p = "../example/u.jpg";
     std::cout << (long int) std::filesystem::file_size(p) << std::endl;
     std::ifstream image = open_image(p);
 
@@ -37,7 +37,7 @@ int main(){
                 htable = read_HTable(&image);
                 htables.push_back(htable);
                 
-                /*
+                
                 //For debugging purposes
                 std::cout << "Length " << (int) htable->length << "\n";
                 std::cout << "Type " << (int) htable->type << "\n";
@@ -54,7 +54,7 @@ int main(){
 
                     std::cout << "\n" << std::dec;
                 }
-                */
+                
 
                 break;
             case 0xDD:
@@ -306,7 +306,7 @@ void create_max_min_symbols(int16_t min_symbol[16],int16_t max_symbol[16], std::
         max_symbol[last_non_zero_length] = -1;
     }
 
-    min_symbol[last_non_zero_length] = 0;
+	min_symbol[last_non_zero_length] = 0;
     max_symbol[last_non_zero_length] = Symbol_array[last_non_zero_length].size() - 1;
 
     for(int i = last_non_zero_length+1; i < 16; i++){
@@ -535,7 +535,7 @@ void read_data_block(Data_block *data_block, std::ifstream *image, uint8_t id){
 		}
 	}
 
-    /*
+    
     //For debugging purposes
     for(int i = 0; i < 8; i++){
         for(int j = 0; j < 8; j++){
@@ -544,7 +544,7 @@ void read_data_block(Data_block *data_block, std::ifstream *image, uint8_t id){
         std::cout << std::endl;
     }
     std::cout << std::endl;
-    */
+    
 }
 
 void dequantize_MCU(){
