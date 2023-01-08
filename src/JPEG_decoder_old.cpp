@@ -682,7 +682,7 @@ void ToRGB(){
         }
     }
 
-    /*
+    
     //For debugging purposes
     std::cout << "Decoded RGB Values" << std::endl;
     for(int count = 0; count < 4; count++){
@@ -711,5 +711,5 @@ void ToRGB(){
         }
         std::cout << std::endl;  
     } 
-    */
+    
 }

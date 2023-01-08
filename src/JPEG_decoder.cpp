@@ -71,6 +71,7 @@ void jpeg_image::find_markers(){
                 case 0xD9:
                     //EOI
 					EOI_marker = true;
+					this->convert_RGB();
 					break;
                 case 0xDA:
                     //SOS
@@ -366,11 +367,72 @@ void jpeg_image::convert_RGB(){
 	uint16_t height = this->frame_header.get_height();
 	uint16_t width = this->frame_header.get_width();
 	RGB_pixel_data = new struct RGB[this->frame_header.get_height() * this->frame_header.get_width()];
-	
+	//If num_chans == 1 Black and white If num _chans == 3 YCBCR
+	uint8_t num_chans = this->frame_header.get_num_chans();
 	uint16_t horz_block_width = 0;
-	struct Component *components = this->decoder_image_data[0][0].components;
-	for(int i = 0; i < this->frame_header.get_num_chans(); i++){
-
+	uint16_t vert_block_width = 0;
+	for(int i = 0; i < num_chans; i++){
+		struct Channel_info *chan = this->frame_header.get_chan_info(i);
+		horz_block_width = (horz_block_width > chan->horz_sampling) ? horz_block_width : chan->horz_sampling;
+		vert_block_width = (vert_block_width > chan->vert_sampling) ? vert_block_width : chan->vert_sampling;
 	}
-	uint16_t vert_block_width = 0; 
+	struct YCBCR **temp_YCBCR_pixel_block = new struct YCBCR*[vert_block_width * 8];
+	for(int i = 0; i < vert_block_width * 8; i++)
+		temp_YCBCR_pixel_block[i] = new struct YCBCR[horz_block_width * 8];
+
+	uint32_t unit_index = 0;
+	uint8_t pos = 0;
+
+	for(uint32_t block_index_y = 0; block_index_y < this->image_block_size.Y; block_index_y++){
+		for(uint32_t block_index_x = 0; block_index_x < this->image_block_size.X; block_index_x++){
+			struct Image_block image_block = this->decoded_image_data[block_index_y][block_index_x];
+			for(uint32_t pos_y = 0; pos_y < vert_block_width * 8; pos_y++){
+				for(uint32_t pos_x = 0; pos_x < horz_block_width * 8; pos_x++){
+					for(uint8_t comp_index = 0; comp_index < num_chans; comp_index++){
+						struct Channel_info *chan_info = this->frame_header.get_chan_info(comp_index);
+						struct Component component = image_block.components[comp_index];
+						double ratio_x = (double) pos_x / (horz_block_width * 8);
+						double ratio_y = (double) pos_y / (vert_block_width * 8);
+						
+						uint32_t rel_pos_x = (uint32_t) (ratio_x * (chan_info->horz_sampling * 8));
+						uint32_t rel_pos_y = (uint32_t) (ratio_y * (chan_info->vert_sampling * 8));
+
+						uint8_t index_x = (uint8_t) (ratio_x * chan_info->horz_sampling);
+						uint8_t index_y = (uint8_t) (ratio_y * chan_info->vert_sampling);
+
+						int16_t (*data_block)[8] = component.data_blocks[index_y * chan_info->vert_sampling + index_x];
+						if(comp_index == 0)
+							temp_YCBCR_pixel_block[pos_y][pos_x].Y = data_block[rel_pos_y % 8][rel_pos_x % 8];
+						else if(comp_index == 1)
+							temp_YCBCR_pixel_block[pos_y][pos_x].CB = data_block[rel_pos_y % 8][rel_pos_x % 8];
+						else if(comp_index == 2)
+							temp_YCBCR_pixel_block[pos_y][pos_x].CR = data_block[rel_pos_y % 8][rel_pos_x % 8];
+						
+					}
+				}
+			}
+			//start here
+			for(uint32_t pos_y = 0; pos_y < vert_block_width * 8; pos_y++){
+				for(uint32_t pos_x = 0; pos_x < horz_block_width * 8; pos_x++){
+					if(((block_index_y * vert_block_width * 8) + pos_y) >= this->frame_header.get_height() || ((block_index_x * horz_block_width * 8) + pos_x) >= this->frame_header.get_width())
+						continue;
+					struct YCBCR pixel = temp_YCBCR_pixel_block[pos_y][pos_x];
+					uint32_t index = (((block_index_y * vert_block_width * 8) + pos_y) * this->frame_header.get_width()) + (block_index_x * horz_block_width * 8) + pos_x;
+					struct RGB *rgb_pixel = &(RGB_pixel_data[index]);
+					int32_t r = (int32_t) pixel.Y + 1.402 * ((int32_t) pixel.CR - 128);
+					rgb_pixel->R = (uint8_t) r;
+					if(r > 255) rgb_pixel->R = 255;
+					if(r < 0) rgb_pixel->R = 0;
+					int32_t g = (int32_t) pixel.Y - 0.344136 * ((int32_t) pixel.CB - 128) - 0.71136 * ((int32_t) pixel.CR - 128);
+					rgb_pixel->G = (uint8_t) g;
+					if(g > 255) rgb_pixel->G =255;
+					if(g < 0) rgb_pixel->G = 0;
+					int32_t b = (int32_t) pixel.Y + 1.772 * ((int32_t) pixel.CB - 128);
+					rgb_pixel->B = (uint8_t) b;
+					if(b > 255) rgb_pixel->B = 255;
+					if(b < 0) rgb_pixel->B = 0;
+				}
+			}
+		}
+	}
 }

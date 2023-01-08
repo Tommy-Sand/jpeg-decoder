@@ -40,17 +40,21 @@ struct size{
 	uint16_t Y;
 };
 
-
-
 struct RGB{
 	uint8_t R;
 	uint8_t G;
 	uint8_t B;
-}
+};
 
 struct RGB_block{
 	struct RGB rgb_block[8][8];
-}
+};
+
+struct YCBCR{
+	int16_t Y;
+	int16_t CB;
+	int16_t CR;
+};
 
 class Comment{
 public:
