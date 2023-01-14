@@ -134,11 +134,12 @@ void jpeg_image::decode_huffman_tables(uint8_t **data){
 void jpeg_image::decode_quantization_tables(uint8_t **data){
 	uint16_t length = *((*data)++) << 8;
 	length += **data;
-	for(int i = length - 2; i > 0;){
+	for(int i = length - 3; i > 0;){
 		Quantization_table new_quant_table = Quantization_table(data);
 		this->quantization_tables[new_quant_table.get_id()] = new_quant_table;
 		i -= new_quant_table.get_length();
 	}
+	*(++(*data));
 }
 
 void jpeg_image::setup_image() {	
@@ -435,4 +436,12 @@ void jpeg_image::convert_RGB(){
 			}
 		}
 	}
+	
+	for(uint32_t i = 0; i < 1; i++){
+		for(uint32_t j = 0; j < width; j++){
+			struct RGB rgb = RGB_pixel_data[i*width + j];
+			std::cout << "(" << (int) rgb.R << ", " << (int) rgb.G << ", " << (int) rgb.B << ")";
+		}
+	}
+	std::cout << std::endl;
 }
