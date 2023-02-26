@@ -123,11 +123,11 @@ void jpeg_image::decode_huffman_tables(uint8_t **data){
 	uint16_t length = ((uint16_t) *((*data)++)) << 8;
 	length += *((*data)++);
 	for(int i = length - 2; i > 0;){
-		Huffman_table new_huffman_table = Huffman_table(data);
-		uint8_t type = new_huffman_table.get_type();
-		uint8_t table_id = new_huffman_table.get_table_id();
+		Huffman_table* new_huffman_table = new Huffman_table(data);
+		uint8_t type = new_huffman_table->get_type();
+		uint8_t table_id = new_huffman_table->get_table_id();
 		huffman_tables[type][table_id] = new_huffman_table; 
-		i -= new_huffman_table.get_length();
+		i -= new_huffman_table->get_length();
 	}
 }
 
@@ -197,13 +197,14 @@ void jpeg_image::entropy_decode(Scan_header header, uint8_t **cpy_data){
 
 	byte = *((*cpy_data)++);	
 	uint32_t max_index = this->image_block_size.X * this->image_block_size.Y;
-	for(uint32_t index = 0; EOS == false && index < max_index ; index++){
+	uint32_t index = 0;
+	for(; EOS == false && index < max_index ; index++){
 		struct Image_block image_block = this->get_image_block(index);
 		for(int i = 0; i < total_num_chans; i++){
 			Quantization_table quant_table = this->get_quantization_table(this->frame_header.get_chan_info(i)->qtableID);
 			struct Component component = image_block.components[i];
-			Huffman_table huff_DC;
-			Huffman_table huff_AC;
+			Huffman_table* huff_DC;
+			Huffman_table* huff_AC;
 			uint8_t chan_id = this->frame_header.get_chan_info(i)->id;
 			for(int j = 0; j < scan_num_chans; j++){
 				struct Chan_specifier *chan_spec = header.get_chan_spec(j);
@@ -222,20 +223,22 @@ void jpeg_image::entropy_decode(Scan_header header, uint8_t **cpy_data){
 					return;
 				quant_table.dequantize(component.data_blocks[j]);
 				this->IDCT(component.data_blocks[j]);
-				//RGB
 			}
 		}
 	}
+	delete[] pred;
+	delete[] read_order;
+	std::cout << "Done with this scan" << std::endl;
 }
 
-uint8_t jpeg_image::decode_dc(int16_t data_block[8][8], uint8_t **cpy_data, Huffman_table huff, int16_t *pred, bool *EOS) {
+uint8_t jpeg_image::decode_dc(int16_t data_block[8][8], uint8_t **cpy_data, Huffman_table* huff, int16_t *pred, bool *EOS) {
 	uint8_t code_length = 0;
 	uint16_t code = 0;
 	uint8_t size = 0; 
 	int16_t symbol = 0;
-	int32_t *min_code_of_len = huff.get_min_code_values();
-	int32_t *max_code_of_len = huff.get_max_code_values();
-	uint8_t **symbols = huff.get_symbol_arrays(); 
+	int32_t *min_code_of_len = huff->get_min_code_values();
+	int32_t *max_code_of_len = huff->get_max_code_values();
+	uint8_t **symbols = huff->get_symbol_arrays(); 
 	do{
 		code = (code << 1) + get_bit(cpy_data, EOS);
 		if(*EOS == true)
@@ -257,10 +260,10 @@ uint8_t jpeg_image::decode_dc(int16_t data_block[8][8], uint8_t **cpy_data, Huff
 	return 0;
 }
 
-uint8_t jpeg_image::decode_ac(int16_t data_block[8][8], uint8_t **cpy_data, Huffman_table huff, bool *EOS){
-	int32_t *min_code_of_len = huff.get_min_code_values();
-	int32_t *max_code_of_len = huff.get_max_code_values();
-	uint8_t **symbols = huff.get_symbol_arrays(); 
+uint8_t jpeg_image::decode_ac(int16_t data_block[8][8], uint8_t **cpy_data, Huffman_table* huff, bool *EOS){
+	int32_t *min_code_of_len = huff->get_min_code_values();
+	int32_t *max_code_of_len = huff->get_max_code_values();
+	uint8_t **symbols = huff->get_symbol_arrays(); 
 
 	for(int i = 1; i <= 64; i++){
 		uint8_t code_length = 0;
@@ -330,7 +333,8 @@ int16_t jpeg_image::coefficient_decoding(uint16_t symbol, uint8_t size){
 }
 
 void jpeg_image::IDCT(int16_t data_block[8][8]){
-	long double pi = 3.14159265358979323846264338327950288419716939937510;
+	//long double pi = 3.14159265358979323846264338327950288419716939937510;
+	long double pi = 3.14;
 	int16_t base_data_block[8][8];
 	for(int i = 0; i < 8; i++){
 		for(int j = 0; j < 8; j++){
@@ -340,15 +344,15 @@ void jpeg_image::IDCT(int16_t data_block[8][8]){
 
 	for(int y = 0; y < 8; y++){
 		for(int x = 0; x < 8; x++){
-			double sumu = 0;
+			long double sumu = 0;
             for(int u = 0; u < 8; u++){
-            	double sumv = 0;
+            	long double sumv = 0;
                 for(int v = 0; v < 8; v++){
-                    double alphau = (u == 0)? 1/std::sqrt(2): 1;
-                    double alphav = (v == 0)? 1/std::sqrt(2): 1;
-                    double cosx = std::cos(((2*x+1)*u*pi)/16);
-                    double cosy = std::cos(((2*y+1)*v*pi)/16);
-                    double total = alphau*alphav*base_data_block[u][v]*cosx*cosy;
+                    long double alphau = (u == 0)? 1/std::sqrt(2): 1;
+                    long double alphav = (v == 0)? 1/std::sqrt(2): 1;
+                    long double cosx = std::cos(((2*x+1)*u*pi)/16);
+                    long double cosy = std::cos(((2*y+1)*v*pi)/16);
+                    long double total = alphau*alphav*base_data_block[u][v]*cosx*cosy;
                     sumv += total;
                 }
                 sumu += sumv;
@@ -436,12 +440,24 @@ void jpeg_image::convert_RGB(){
 			}
 		}
 	}
-	
 	for(uint32_t i = 0; i < 1; i++){
 		for(uint32_t j = 0; j < width; j++){
 			struct RGB rgb = RGB_pixel_data[i*width + j];
 			std::cout << "(" << (int) rgb.R << ", " << (int) rgb.G << ", " << (int) rgb.B << ")";
 		}
+		std::cout << std::endl;
 	}
 	std::cout << std::endl;
+	
+	for(int i = 0; i < vert_block_width * 8; i++)
+		delete[] temp_YCBCR_pixel_block[i];
+	delete[] temp_YCBCR_pixel_block;
+}
+
+jpeg_image::~jpeg_image(){
+	for(int i = 0; i < 2; i++){
+		for(int j = 0; j < 4; j++){
+			delete huffman_tables[i][j];
+		}
+	}
 }
