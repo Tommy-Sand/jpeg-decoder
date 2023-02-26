@@ -109,6 +109,7 @@ class Huffman_table{
 public:
 	Huffman_table() {};
     Huffman_table(uint8_t** data);
+	~Huffman_table();
 	uint16_t get_length() {return this->length;};
 	uint8_t get_type() {return this->type;};
 	uint8_t get_table_id() {return this->table_id;};
@@ -196,8 +197,9 @@ class jpeg_image{
 public:
     jpeg_image(const char* path);
     jpeg_image(void *data, uint64_t size);
+	~jpeg_image();
 	Frame_header get_frame_header() {return frame_header;};
-	Huffman_table get_huffman_table(int i, int j) {return huffman_tables[i][j];};
+	Huffman_table* get_huffman_table(int i, int j) {return huffman_tables[i][j];};
 	Quantization_table get_quantization_table(int i) {return quantization_tables[i];};
 	Restart_interval get_restart_interval() {return restart_interval;};
 	struct Image_block get_image_block(uint32_t index);
@@ -206,8 +208,8 @@ public:
 	void decode_scan(uint8_t **data);
 	void setup_image();
 	void entropy_decode(Scan_header header, uint8_t **cpy_data);
-	uint8_t decode_dc(int16_t data_block[8][8], uint8_t **cpy_data, Huffman_table huff, int16_t *pred, bool *EOS);
-	uint8_t decode_ac(int16_t data_block[8][8], uint8_t **cpy_data, Huffman_table huff, bool *EOS);
+	uint8_t decode_dc(int16_t data_block[8][8], uint8_t **cpy_data, Huffman_table* huff, int16_t *pred, bool *EOS);
+	uint8_t decode_ac(int16_t data_block[8][8], uint8_t **cpy_data, Huffman_table* huff, bool *EOS);
 private:
     void find_markers();
 	uint8_t get_bit(uint8_t **cpy_data, bool *EOS);
@@ -228,7 +230,7 @@ private:
 	Quantization_table quantization_tables[4];
 	std::vector<Comment> comments;
 	uint8_t num_huffman_tables;
-	Huffman_table huffman_tables[2][4];
+	Huffman_table* huffman_tables[2][4];
 	std::vector<APP_header> app_headers;
 	bool restart_interval_read;
 	Restart_interval restart_interval;

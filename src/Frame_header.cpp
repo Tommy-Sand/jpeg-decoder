@@ -16,10 +16,10 @@ Frame_header::Frame_header(uint8_t **data) {
     this->precision = *(++(*data));
 
     this->height = ((uint16_t) *(++(*data))) << 8;
-    this->height = *(++(*data));
+    this->height += *(++(*data));
 
     this->width = ((uint16_t) *(++(*data))) << 8;
-    this->width = *(++(*data));
+    this->width += *(++(*data));
 
     this->num_chans = *(++(*data));
 

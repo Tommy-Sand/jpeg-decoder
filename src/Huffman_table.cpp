@@ -41,3 +41,16 @@ Huffman_table::Huffman_table(uint8_t **data) {
 	}
 
 }
+
+Huffman_table::~Huffman_table(){
+
+	delete[] num_codes_len_i;
+	delete[] min_code_value;
+	delete[] max_code_value;
+
+	for(int i = 0; i < 16; i++){
+		delete[] symbol_array[i];
+	}
+	delete[] symbol_array;
+
+}
