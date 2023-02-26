@@ -51,7 +51,7 @@ void jpeg_image::find_markers(){
                 case 0xC0: //SOF Sequential
                 case 0xC1: //SOF Sequential extended
                 case 0xC2: //SOF progressive
-                    this->frame_header = Frame_header(&cpy_data);
+                    this->frame_header = new Frame_header(&cpy_data);
 					this->setup_image();
 					break;
                 case 0xC4:
@@ -75,7 +75,7 @@ void jpeg_image::find_markers(){
 					break;
                 case 0xDA:
                     //SOS
-					this->scan_headers.push_back(Scan_header(&(++cpy_data)));
+					this->scan_headers.push_back(new Scan_header(&(++cpy_data)));
 					this->entropy_decode(this->scan_headers[this->scan_headers.size() - 1], &(++cpy_data));
 					cpy_data--;
 					break;
@@ -146,46 +146,48 @@ void jpeg_image::setup_image() {
 	//find largest Horizontal and Vertical sampling ratio
 	uint8_t largest_horz = 0;
 	uint8_t largest_vert = 0;
-	uint16_t *blocks_per_channel = new uint16_t[this->frame_header.get_num_chans()];
-	for(int i = 0; i < this->frame_header.get_num_chans(); i++){
-		struct Channel_info chan_info = *(this->frame_header.get_chan_info(i));
+	uint16_t *blocks_per_channel = new uint16_t[this->frame_header->get_num_chans()];
+	for(int i = 0; i < this->frame_header->get_num_chans(); i++){
+		struct Channel_info chan_info = *(this->frame_header->get_chan_info(i));
 		largest_horz = chan_info.horz_sampling > largest_horz ? chan_info.horz_sampling : largest_horz;
 		largest_vert = chan_info.vert_sampling > largest_vert ? chan_info.vert_sampling : largest_vert;
 		blocks_per_channel[i] = chan_info.horz_sampling * chan_info.vert_sampling;
 	}
 
 	//Find how many rows and columns of image blocks are needed
-	uint16_t horz_blocks = floor(((float) this->frame_header.get_height() / (largest_horz*8)) + 0.5);
-	uint16_t vert_blocks = floor(((float) this->frame_header.get_width() / (largest_vert*8)) + 0.5);
+	uint16_t horz_blocks = floor(((float) this->frame_header->get_height() / (largest_horz*8)) + 0.5);
+	uint16_t vert_blocks = floor(((float) this->frame_header->get_width() / (largest_vert*8)) + 0.5);
 	this->image_block_size.X = horz_blocks;
 	this->image_block_size.Y = vert_blocks;
 	this->decoded_image_data = new struct Image_block*[vert_blocks];
 	for(uint16_t i = 0; i < vert_blocks; i++){
 		this->decoded_image_data[i] = new struct Image_block[horz_blocks];
 		for(int j = 0; j < horz_blocks; j++) {
-			this->decoded_image_data[i][j].components = new struct Component[this->frame_header.get_num_chans()];
-			for(int k = 0; k < this->frame_header.get_num_chans(); k++){
+			this->decoded_image_data[i][j].components = new struct Component[this->frame_header->get_num_chans()];
+			for(int k = 0; k < this->frame_header->get_num_chans(); k++){
 				struct Component *component = (this->decoded_image_data[i][j].components) + k;
 				component->num_data_blocks = blocks_per_channel[k];
 				component->data_blocks = new int16_t[component->num_data_blocks][8][8]{{{0}}};
 			}
 		}
 	}
+
+	delete[] blocks_per_channel;
 }
 
-void jpeg_image::entropy_decode(Scan_header header, uint8_t **cpy_data){
+void jpeg_image::entropy_decode(Scan_header* header, uint8_t **cpy_data){
 	uint64_t data_block_index = 0;
 	bool EOS = false;
-	uint8_t total_num_chans = this->frame_header.get_num_chans();
-	uint8_t scan_num_chans = header.get_num_chans();
+	uint8_t total_num_chans = this->frame_header->get_num_chans();
+	uint8_t scan_num_chans = header->get_num_chans();
 	int16_t *pred = new int16_t[total_num_chans]{0}; 
 	//Build a read order array
 	uint8_t *read_order = new uint8_t[total_num_chans];
 	for(uint8_t i = 0; i < total_num_chans; i++){
-		struct Channel_info *frame_chan_info = this->frame_header.get_chan_info(i);
+		struct Channel_info *frame_chan_info = this->frame_header->get_chan_info(i);
 		read_order[i] = 0;
 		for(uint8_t j = 0; j < scan_num_chans; j++){
-			struct Chan_specifier *scan_chan_spec = header.get_chan_spec(j);
+			struct Chan_specifier *scan_chan_spec = header->get_chan_spec(j);
 			if(frame_chan_info->id == scan_chan_spec->componentID){
 				read_order[i] = frame_chan_info->horz_sampling * frame_chan_info->vert_sampling;
 				break;
@@ -201,13 +203,13 @@ void jpeg_image::entropy_decode(Scan_header header, uint8_t **cpy_data){
 	for(; EOS == false && index < max_index ; index++){
 		struct Image_block image_block = this->get_image_block(index);
 		for(int i = 0; i < total_num_chans; i++){
-			Quantization_table* quant_table = this->get_quantization_table(this->frame_header.get_chan_info(i)->qtableID);
+			Quantization_table* quant_table = this->get_quantization_table(this->frame_header->get_chan_info(i)->qtableID);
 			struct Component component = image_block.components[i];
 			Huffman_table* huff_DC;
 			Huffman_table* huff_AC;
-			uint8_t chan_id = this->frame_header.get_chan_info(i)->id;
+			uint8_t chan_id = this->frame_header->get_chan_info(i)->id;
 			for(int j = 0; j < scan_num_chans; j++){
-				struct Chan_specifier *chan_spec = header.get_chan_spec(j);
+				struct Chan_specifier *chan_spec = header->get_chan_spec(j);
 				if(chan_spec->componentID != chan_id)
 					continue;
 				else{
@@ -369,15 +371,15 @@ void jpeg_image::IDCT(int16_t data_block[8][8]){
 }
 
 void jpeg_image::convert_RGB(){
-	uint16_t height = this->frame_header.get_height();
-	uint16_t width = this->frame_header.get_width();
-	RGB_pixel_data = new struct RGB[this->frame_header.get_height() * this->frame_header.get_width()];
+	uint16_t height = this->frame_header->get_height();
+	uint16_t width = this->frame_header->get_width();
+	this->RGB_pixel_data = new struct RGB[this->frame_header->get_height() * this->frame_header->get_width()];
 	//If num_chans == 1 Black and white If num _chans == 3 YCBCR
-	uint8_t num_chans = this->frame_header.get_num_chans();
+	uint8_t num_chans = this->frame_header->get_num_chans();
 	uint16_t horz_block_width = 0;
 	uint16_t vert_block_width = 0;
 	for(int i = 0; i < num_chans; i++){
-		struct Channel_info *chan = this->frame_header.get_chan_info(i);
+		struct Channel_info *chan = this->frame_header->get_chan_info(i);
 		horz_block_width = (horz_block_width > chan->horz_sampling) ? horz_block_width : chan->horz_sampling;
 		vert_block_width = (vert_block_width > chan->vert_sampling) ? vert_block_width : chan->vert_sampling;
 	}
@@ -394,7 +396,7 @@ void jpeg_image::convert_RGB(){
 			for(uint32_t pos_y = 0; pos_y < vert_block_width * 8; pos_y++){
 				for(uint32_t pos_x = 0; pos_x < horz_block_width * 8; pos_x++){
 					for(uint8_t comp_index = 0; comp_index < num_chans; comp_index++){
-						struct Channel_info *chan_info = this->frame_header.get_chan_info(comp_index);
+						struct Channel_info *chan_info = this->frame_header->get_chan_info(comp_index);
 						struct Component component = image_block.components[comp_index];
 						double ratio_x = (double) pos_x / (horz_block_width * 8);
 						double ratio_y = (double) pos_y / (vert_block_width * 8);
@@ -419,10 +421,10 @@ void jpeg_image::convert_RGB(){
 			//start here
 			for(uint32_t pos_y = 0; pos_y < vert_block_width * 8; pos_y++){
 				for(uint32_t pos_x = 0; pos_x < horz_block_width * 8; pos_x++){
-					if(((block_index_y * vert_block_width * 8) + pos_y) >= this->frame_header.get_height() || ((block_index_x * horz_block_width * 8) + pos_x) >= this->frame_header.get_width())
+					if(((block_index_y * vert_block_width * 8) + pos_y) >= this->frame_header->get_height() || ((block_index_x * horz_block_width * 8) + pos_x) >= this->frame_header->get_width())
 						continue;
 					struct YCBCR pixel = temp_YCBCR_pixel_block[pos_y][pos_x];
-					uint32_t index = (((block_index_y * vert_block_width * 8) + pos_y) * this->frame_header.get_width()) + (block_index_x * horz_block_width * 8) + pos_x;
+					uint32_t index = (((block_index_y * vert_block_width * 8) + pos_y) * this->frame_header->get_width()) + (block_index_x * horz_block_width * 8) + pos_x;
 					struct RGB *rgb_pixel = &(RGB_pixel_data[index]);
 					int32_t r = (int32_t) pixel.Y + 1.402 * ((int32_t) pixel.CR - 128);
 					rgb_pixel->R = (uint8_t) r;
@@ -440,7 +442,7 @@ void jpeg_image::convert_RGB(){
 			}
 		}
 	}
-	for(uint32_t i = 0; i < 1; i++){
+	for(uint32_t i = 0; i < height; i++){
 		for(uint32_t j = 0; j < width; j++){
 			struct RGB rgb = RGB_pixel_data[i*width + j];
 			std::cout << "(" << (int) rgb.R << ", " << (int) rgb.G << ", " << (int) rgb.B << ")";
@@ -463,7 +465,7 @@ jpeg_image::~jpeg_image(){
 
 	for(int i = 0; i < this->image_block_size.Y; i++){
 		for(int j = 0; j < this->image_block_size.Y; j++){
-			for(int k = 0; k < this->frame_header.get_num_chans(); k++){
+			for(int k = 0; k < this->frame_header->get_num_chans(); k++){
 				delete[] this->decoded_image_data[i][j].components[k].data_blocks;
 			}
 			delete[] this->decoded_image_data[i][j].components;
@@ -476,4 +478,13 @@ jpeg_image::~jpeg_image(){
 	delete[] this->decoded_image_data;
 
 	delete[] this->data;
+
+	delete[] this->RGB_pixel_data;
+
+	delete frame_header;
+
+	int size = this->scan_headers.size();
+	for(int i = 0; i < size; i++){
+		delete this->scan_headers[i];
+	}
 }

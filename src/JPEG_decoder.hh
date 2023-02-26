@@ -132,6 +132,7 @@ class Frame_header{
 public:
 	Frame_header() {};
     Frame_header(uint8_t **data);
+	~Frame_header();
     uint16_t get_length() {return this->length;}
     uint8_t get_precision() {return this->precision;}
     uint16_t get_height() {return this->height;}
@@ -174,6 +175,7 @@ class Scan_header{
 public:
 	Scan_header() {};
 	Scan_header(uint8_t **data);
+	~Scan_header();
     uint16_t get_length() {return this->length;}
     uint8_t get_num_chans() {return this->num_chans;}
     struct Chan_specifier *get_chan_spec(uint8_t index) { 
@@ -199,7 +201,7 @@ public:
     jpeg_image(const char* path);
     jpeg_image(void *data, uint64_t size);
 	~jpeg_image();
-	Frame_header get_frame_header() {return frame_header;};
+	Frame_header* get_frame_header() {return frame_header;};
 	Huffman_table* get_huffman_table(int i, int j) {return huffman_tables[i][j];};
 	Quantization_table* get_quantization_table(int i) {return quantization_tables[i];};
 	Restart_interval get_restart_interval() {return restart_interval;};
@@ -208,7 +210,7 @@ public:
     void decode_huffman_tables(uint8_t **data);
 	void decode_scan(uint8_t **data);
 	void setup_image();
-	void entropy_decode(Scan_header header, uint8_t **cpy_data);
+	void entropy_decode(Scan_header* header, uint8_t **cpy_data);
 	uint8_t decode_dc(int16_t data_block[8][8], uint8_t **cpy_data, Huffman_table* huff, int16_t *pred, bool *EOS);
 	uint8_t decode_ac(int16_t data_block[8][8], uint8_t **cpy_data, Huffman_table* huff, bool *EOS);
 private:
@@ -225,8 +227,8 @@ private:
     uint8_t *data;
     uint64_t size = 0;
 	bool frame_header_read;
-    Frame_header frame_header;
-	std::vector<Scan_header> scan_headers;
+    Frame_header* frame_header;
+	std::vector<Scan_header *> scan_headers;
 	uint8_t num_quantization_tables;
 	Quantization_table* quantization_tables[4];
 	std::vector<Comment> comments;

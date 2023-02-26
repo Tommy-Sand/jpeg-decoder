@@ -34,3 +34,7 @@ Frame_header::Frame_header(uint8_t **data) {
         this->chan_infos[i].qtableID = *(++(*data));
     }
 }
+
+Frame_header::~Frame_header(){
+	delete[] this->chan_infos;
+}

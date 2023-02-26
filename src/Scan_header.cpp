@@ -19,3 +19,7 @@ Scan_header::Scan_header(uint8_t **data) {
     this->prev_approx = (*(++(*data)) >> 4) & 0xF;
     this->succ_approx = **data & 0xF;
 }
+
+Scan_header::~Scan_header(){
+	delete[] this->chan_specifiers;
+}
