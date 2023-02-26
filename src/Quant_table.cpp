@@ -34,3 +34,9 @@ void Quantization_table::dequantize(int16_t block[8][8]){
 		}
 	}
 }
+
+Quantization_table::~Quantization_table(){
+	for(int i = 0; i < 8; i++)
+		delete[] this->quant_table[i];
+	delete[] this->quant_table;
+}

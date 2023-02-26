@@ -135,9 +135,9 @@ void jpeg_image::decode_quantization_tables(uint8_t **data){
 	uint16_t length = *((*data)++) << 8;
 	length += **data;
 	for(int i = length - 3; i > 0;){
-		Quantization_table new_quant_table = Quantization_table(data);
-		this->quantization_tables[new_quant_table.get_id()] = new_quant_table;
-		i -= new_quant_table.get_length();
+		Quantization_table* quant_table = new Quantization_table(data);
+		this->quantization_tables[quant_table->get_id()] = quant_table;
+		i -= quant_table->get_length();
 	}
 	*(++(*data));
 }
@@ -201,7 +201,7 @@ void jpeg_image::entropy_decode(Scan_header header, uint8_t **cpy_data){
 	for(; EOS == false && index < max_index ; index++){
 		struct Image_block image_block = this->get_image_block(index);
 		for(int i = 0; i < total_num_chans; i++){
-			Quantization_table quant_table = this->get_quantization_table(this->frame_header.get_chan_info(i)->qtableID);
+			Quantization_table* quant_table = this->get_quantization_table(this->frame_header.get_chan_info(i)->qtableID);
 			struct Component component = image_block.components[i];
 			Huffman_table* huff_DC;
 			Huffman_table* huff_AC;
@@ -221,7 +221,7 @@ void jpeg_image::entropy_decode(Scan_header header, uint8_t **cpy_data){
 					return;
 				if(this->decode_ac(component.data_blocks[j], cpy_data, huff_AC, &EOS) == 1)
 					return;
-				quant_table.dequantize(component.data_blocks[j]);
+				quant_table->dequantize(component.data_blocks[j]);
 				this->IDCT(component.data_blocks[j]);
 			}
 		}
@@ -460,4 +460,20 @@ jpeg_image::~jpeg_image(){
 			delete huffman_tables[i][j];
 		}
 	}
+
+	for(int i = 0; i < this->image_block_size.Y; i++){
+		for(int j = 0; j < this->image_block_size.Y; j++){
+			for(int k = 0; k < this->frame_header.get_num_chans(); k++){
+				delete[] this->decoded_image_data[i][j].components[k].data_blocks;
+			}
+			delete[] this->decoded_image_data[i][j].components;
+		}
+		delete[] this->decoded_image_data[i];
+	}
+	for(int i = 0; i < 4; i++)
+		delete quantization_tables[i];
+
+	delete[] this->decoded_image_data;
+
+	delete[] this->data;
 }

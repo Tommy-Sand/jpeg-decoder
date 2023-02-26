@@ -156,6 +156,7 @@ class Quantization_table{
 public:
 	Quantization_table() {};
     Quantization_table(uint8_t **data);
+	~Quantization_table();
     uint16_t get_length() {return length;}
     uint8_t get_precision() {return percision;}
     uint8_t get_id() {return id;}
@@ -200,7 +201,7 @@ public:
 	~jpeg_image();
 	Frame_header get_frame_header() {return frame_header;};
 	Huffman_table* get_huffman_table(int i, int j) {return huffman_tables[i][j];};
-	Quantization_table get_quantization_table(int i) {return quantization_tables[i];};
+	Quantization_table* get_quantization_table(int i) {return quantization_tables[i];};
 	Restart_interval get_restart_interval() {return restart_interval;};
 	struct Image_block get_image_block(uint32_t index);
     void decode_quantization_tables(uint8_t **data);
@@ -227,7 +228,7 @@ private:
     Frame_header frame_header;
 	std::vector<Scan_header> scan_headers;
 	uint8_t num_quantization_tables;
-	Quantization_table quantization_tables[4];
+	Quantization_table* quantization_tables[4];
 	std::vector<Comment> comments;
 	uint8_t num_huffman_tables;
 	Huffman_table* huffman_tables[2][4];
