@@ -141,7 +141,10 @@ int decode_scan(uint8_t **encoded_data, Image *img, FrameHeader *fh, ScanHeader 
 		*(mcu + i) = dus;
 	}
 
-	//
+	//For performace measurement
+	struct timespec start;
+	struct timespec end;
+	
 	uint32_t mcus_read = 0;
 	while(!EOI) {
 		if (mcus_read == 24576) {
@@ -186,19 +189,49 @@ int decode_scan(uint8_t **encoded_data, Image *img, FrameHeader *fh, ScanHeader 
 					if(!du) {
 						return -1;
 					}
+					timespec_get(&start, TIME_UTC);
 					if (decode_data_unit(encoded_data, &offset, du, dc, ac, pred + i) != 0) {
 						free(mcu);
 						return -1;
 					}
+					timespec_get(&end, TIME_UTC);
+					uint64_t start_ns = ((uint64_t) start.tv_sec * 1000000000) + start.tv_nsec;
+					uint64_t end_ns = ((uint64_t) end.tv_sec * 1000000000) + end.tv_nsec;
+					uint16_t diff = end_ns - start_ns;
+					/*
+					printf("start: sec(%ld) nanosec(%ld)\n", start.tv_sec, start.tv_nsec);
+					printf("end: sec(%ld) nanosec(%ld)\n", end.tv_sec, end.tv_nsec);
+					printf("Decoding time: %dns\n", diff);
+					*/
+					timespec_get(&start, TIME_UTC);
 					if (dequant_data_unit(qt, du) != 0) {
 						free(mcu);
 						return -1;
 					}
+
+					timespec_get(&end, TIME_UTC);
+					start_ns = ((uint64_t) start.tv_sec * 1000000000) + start.tv_nsec;
+					end_ns = ((uint64_t) end.tv_sec * 1000000000) + end.tv_nsec;
+					diff = end_ns - start_ns;
+					/*
+					printf("start: sec(%ld) nanosec(%ld)\n", start.tv_sec, start.tv_nsec);
+					printf("end: sec(%ld) nanosec(%ld)\n", end.tv_sec, end.tv_nsec);
+					printf("Dequantizing time: %dns\n", diff);
+					*/
+					timespec_get(&start, TIME_UTC);
 					if (idct(du) != 0) {
 						free(mcu);
 						return -1;
 					}
-
+					timespec_get(&end, TIME_UTC);
+					start_ns = ((uint64_t) start.tv_sec * 1000000000) + start.tv_nsec;
+					end_ns = ((uint64_t) end.tv_sec * 1000000000) + end.tv_nsec;
+					diff = end_ns - start_ns;
+					/*
+					printf("start: sec(%ld) nanosec(%ld)\n", start.tv_sec, start.tv_nsec);
+					printf("end: sec(%ld) nanosec(%ld)\n", end.tv_sec, end.tv_nsec);
+					printf("IDCT time: %dns\n", diff);
+					*/
 				}
 			}
 		}
