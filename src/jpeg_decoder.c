@@ -47,7 +47,7 @@ int main(int argc, char *argv[]) {
 	}
 	fh->process = BDCT;
 
-	ScanHeader *sh = NULL;
+	ScanHeader sh;
 	QuantTables *qts = NULL;
 	HuffTables *hts = NULL;
 	Image *img = NULL;
@@ -181,14 +181,15 @@ int main(int argc, char *argv[]) {
 							return -1;
 						}
 					}
+					*/
 
-					if (decode_scan_header(&ptr, sh) != 0) {
+					if (decode_scan_header(&ptr, &sh) != 0) {
 						printf("DEBUG: Scan Header read failed\n");
 						return -1;
 					}
 
-					print_scan_header(sh);
-					if (decode_scan(&ptr, img, fh, sh, hts, qts, ri) != 0) {
+					print_scan_header(&sh);
+					if (decode_scan(&ptr, img, fh, &sh, hts, qts, ri) != 0) {
 						printf("DEBUG: Decode Scan failed\n");
 						return -1;
 					}
@@ -366,9 +367,6 @@ int main(int argc, char *argv[]) {
 	free(buf);
 	if (fh != NULL) {
 		free_frame_header(fh);
-	}
-	if (sh != NULL) {
-		free_scan_header(sh);
 	}
 	if (qts != NULL) {
 		free_quant_tables(qts);
