@@ -1,5 +1,6 @@
 #include "restart_interval.h"
 #include <stddef.h>
+#include <stdio.h>
 
 int32_t decode_restart_interval(uint8_t **encoded_data, RestartInterval *ri) {
 	if (ri == NULL) {
