@@ -6,8 +6,6 @@
 #include <string.h>
 #include <math.h>
 
-uint8_t log_du1 = 2;
-
 Image *allocate_img(FrameHeader *fh) {
 	Image *img = calloc(1, sizeof(Image));
 	if (!img) {
