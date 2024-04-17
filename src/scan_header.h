@@ -9,7 +9,7 @@ typedef struct {
 
 typedef struct {
 	uint8_t nics; //number of image components in scan 
-	ImageComponent *ics;
+	ImageComponent ics[4]; //4 is the maximum number of components
 	uint8_t ss;
 	uint8_t se;
 	uint8_t ah;

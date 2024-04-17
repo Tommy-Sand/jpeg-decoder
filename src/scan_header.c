@@ -15,15 +15,13 @@ int32_t decode_scan_header(uint8_t **encoded_data, ScanHeader *sh) {
 	}
 
 	sh->nics = *(ptr++);
-	if (sh->nics >= 0) {
-		sh->ics = (ImageComponent *) malloc(sizeof(ImageComponent) * sh->nics);
-		for(uint8_t i = 0; i < sh->nics; i++) {
-			ImageComponent *ic = sh->ics + i;
-			
-			ic->sc = *(ptr++);
-			ic->dc = *ptr >> 4;
-			ic->ac = (*(ptr++)) & 0xF;
-		}
+	if (sh->nics > 4 || sh->nics == 0) {
+		return -1;
+	}
+	for(uint8_t i = 0; i < sh->nics; i++) {
+		(sh->ics[i]).sc = *(ptr++);
+		(sh->ics[i]).dc = *ptr >> 4;
+		(sh->ics[i]).ac = (*(ptr++)) & 0xF;
 	}
 
 	sh->ss = *(ptr++);
@@ -34,10 +32,10 @@ int32_t decode_scan_header(uint8_t **encoded_data, ScanHeader *sh) {
 	if (0) {
 		printf("nics : %d\n", sh->nics);
 		for (uint8_t i = 0; i < sh->nics; i++) {
-			ImageComponent *ic = sh->ics + i;
-			printf("sc : %d\n", ic->sc);
-			printf("dc : %d\n", ic->dc);
-			printf("ac : %d\n", ic->ac);
+			ImageComponent ic = sh->ics[i];
+			printf("sc : %d\n", ic.sc);
+			printf("dc : %d\n", ic.dc);
+			printf("ac : %d\n", ic.ac);
 		}
 		printf("ss : %d\n", sh->ss);
 		printf("se : %d\n", sh->se);
