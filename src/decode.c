@@ -20,13 +20,6 @@ Image *allocate_img(FrameHeader *fh) {
 		Component *c = fh->cs + i;
 		uint16_t x_to_mcu = c->x + ((c->x % (8 * c->hsf)) ? (8 * c->hsf - (c->x % (8 * c->hsf))) : 0);
 		uint16_t y_to_mcu = c->y + ((c->y % (8 * c->vsf)) ? (8 * c->vsf - (c->y % (8 * c->vsf))) : 0);
-		/*
-		printf("temp: %d\n", (8 * c->hsf));
-		printf("temp: %d\n", (8 * c->vsf));
-		printf("temp2: %d\n", c->y % (8 * c->hsf));
-		printf("temp2: %d\n", c->y % (8 * c->vsf));
-		printf("x_to_mcu: %d, y_to_mcu: %d\n", x_to_mcu, y_to_mcu);
-		*/
 		img->buf[i] = (uint8_t *) calloc(x_to_mcu * y_to_mcu, sizeof(uint8_t));
 		if (!(img->buf[i])) {
 			for (uint8_t j = 0; j < i; j++) {
@@ -42,7 +35,6 @@ Image *allocate_img(FrameHeader *fh) {
 	return img;
 }
 
-/*
 void print_mcu(Image *img, int16_t (**mcu)[64], FrameHeader *fh) {
 	for (uint8_t i = 0; i < fh->ncs; i++) {
 		Component *c = fh->cs + i;
@@ -52,7 +44,7 @@ void print_mcu(Image *img, int16_t (**mcu)[64], FrameHeader *fh) {
 				uint16_t mcu_progress = img->mcu;
 				uint16_t x = ((mcu_progress * c->hsf * 8) + (k * 8)) % x_to_mcu; 
 				uint16_t y = ((((mcu_progress * c->hsf * 8) + (k * 8)) / x_to_mcu) * c->vsf * 8) + (j * 8); 
-				//uint16_t y = ((((mcu_progress * c->hsf * 8) + (k * 8)) / x_to_mcu) * c->vsf * 8); 
+				uint16_t y = ((((mcu_progress * c->hsf * 8) + (k * 8)) / x_to_mcu) * c->vsf * 8); 
 
 				if (mcu_progress == 0) {
 					printf("DU: %d\n", (j * c->hsf) + k);
@@ -69,7 +61,6 @@ void print_mcu(Image *img, int16_t (**mcu)[64], FrameHeader *fh) {
 	return;
 
 }
-*/
 
 int write_mcu(Image *img, int16_t (**mcu)[64], FrameHeader *fh) {
 	for (uint8_t i = 0; i < fh->ncs; i++) {
@@ -97,7 +88,6 @@ int write_mcu(Image *img, int16_t (**mcu)[64], FrameHeader *fh) {
 	return 0;
 }
 
-//int write_data_unit(Image *img, int16_t *du, FrameHeader *fh, uint8_t comp) {
 int write_data_unit(Image *img, uint8_t comp, uint16_t x_to_mcu, int16_t *du, uint32_t x, uint32_t y) {
 	for (uint16_t j = y; j < y + 8; j++) {
 		for (uint16_t k = x; k < x + 8; k++) {
@@ -238,11 +228,9 @@ int decode_scan(uint8_t **encoded_data, Image *img, FrameHeader *fh, ScanHeader 
 			Component *c = fh->cs + i;
 			uint8_t *buf = *(img->buf + i);
 			printf("\n");
-			//for (uint8_t j = 0; j < c->y; j++) {
 			for (uint16_t j = 0; j < 1; j++) {
 				printf("\n");
 				for (uint16_t k = 0; k < c->x; k++) {
-					//printf("%d ", *(buf + (c->x * j) + k));
 					printf("%d ", *(buf + (c->x * j) + k));
 				}
 			}
