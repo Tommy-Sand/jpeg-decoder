@@ -10,6 +10,7 @@
 #include <SDL2/SDL.h>
 
 int display_image(int width, int height, SDL_Surface *image);
+int read_app_segment(uint8_t **encoded_data);
 
 int main(int argc, char *argv[]) {
 	if (argc < 2) {
@@ -249,6 +250,7 @@ int main(int argc, char *argv[]) {
 				case 0xEE:
 				case 0xEF:
 					printf("DEBUG: APPLICATION Segment\n");
+					read_app_segment(&ptr);
 					break;
 
 				//For F0-FD Reserved for JPEG extensions
@@ -400,5 +402,15 @@ int display_image(int width, int height, SDL_Surface *image) {
 			}
 		} 
 	}
+	return 0;
+}
+
+int read_app_segment(uint8_t **encoded_data) {
+	uint8_t *ptr = *encoded_data;
+
+	uint16_t len = (*(ptr++)) << 8;
+	len += *(ptr++);
+
+	*encoded_data += len;
 	return 0;
 }
