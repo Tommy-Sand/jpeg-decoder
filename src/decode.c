@@ -218,10 +218,9 @@ int decode_scan(uint8_t **encoded_data, Image *img, FrameHeader *fh, ScanHeader 
 					printf("end: sec(%ld) nanosec(%ld)\n", end.tv_sec, end.tv_nsec);
 					printf("Dequantizing time: %dns\n", diff);
 					timespec_get(&start, TIME_UTC);
-					if (idct(du) != 0) {
-						free(mcu);
-						return -1;
-					}
+
+					fast_2didct(du); 
+
 					timespec_get(&end, TIME_UTC);
 					start_ns = ((uint64_t) start.tv_sec * 1000000000) + start.tv_nsec;
 					end_ns = ((uint64_t) end.tv_sec * 1000000000) + end.tv_nsec;
@@ -386,40 +385,83 @@ int decode_data_unit(uint8_t **encoded_data, uint8_t *offset, int16_t *du, HuffT
 	return 0;
 }
 
+void fast_2didct(int16_t du[64]) {
+	float du_float[64] = {0.0};
+	for (uint8_t i = 0; i < 64; i++) {
+		du_float[i] = (float) du[i];
+	}
+	for (uint8_t i = 0; i < 8; i++) {
+		du_float[i] = 0.707106781 * du_float[i];
+		du_float[i * 8] = 0.707106781 * du_float[i * 8];
+	}
 
-int32_t idct(int16_t *du) {
-	int16_t du_copy[64] = {0.0};
+	float ret_dux[64] = {0};
+	for (uint8_t i = 0; i < 8; i++) {
+		fast_idct(8, ((float *) du_float) + (i * 8), ((float *) ret_dux) + (i * 8));
+	}
+
+	float in_duy[64] = {0};
+	for (uint8_t j = 0; j < 8; j++) {
+		in_duy[j * 8] = ret_dux[j];
+		in_duy[(j * 8) + 1] = ret_dux[j + 8];
+		in_duy[(j * 8) + 2] = ret_dux[j + 16];
+		in_duy[(j * 8) + 3] = ret_dux[j + 24];
+		in_duy[(j * 8) + 4] = ret_dux[j + 32];
+		in_duy[(j * 8) + 5] = ret_dux[j + 40]; 
+		in_duy[(j * 8) + 6] = ret_dux[j + 48]; 
+		in_duy[(j * 8) + 7] = ret_dux[j + 56]; 
+	}
+
+	float ret_duy[64] = {0};
+	for (uint8_t k = 0; k < 8; k++) {
+		fast_idct(8, ((float *) in_duy) + (k * 8), ((float *) ret_duy) + (k * 8));
+	}
+
+	//transpose
+	for (uint8_t j = 0; j < 8; j++) {
+		du[j] = (int16_t) clamp((0.25 * ret_duy[j * 8]) + 128.0, 0.0, 255.0);
+		du[j + 8] = (int16_t) clamp((0.25 * ret_duy[(j * 8) + 1]) + 128.0, 0.0, 255.0);
+		du[j + 16] = (int16_t) clamp((0.25 * ret_duy[(j * 8) + 2]) + 128.0, 0.0, 255.0);
+		du[j + 24] = (int16_t) clamp((0.25 * ret_duy[(j * 8) + 3]) + 128.0, 0.0, 255.0);
+		du[j + 32] = (int16_t) clamp((0.25 * ret_duy[(j * 8) + 4]) + 128.0, 0.0, 255.0);
+		du[j + 40] = (int16_t) clamp((0.25 * ret_duy[(j * 8) + 5]) + 128.0, 0.0, 255.0); 
+		du[j + 48] = (int16_t) clamp((0.25 * ret_duy[(j * 8) + 6]) + 128.0, 0.0, 255.0); 
+		du[j + 56] = (int16_t) clamp((0.25 * ret_duy[(j * 8) + 7]) + 128.0, 0.0, 255.0); 
+	}
+	
+}
+
+//Start with a vector of 8 inputs
+void fast_idct(uint8_t len, float du[len], float ret_du[len]) {
 	const float PI =  3.14159265358979323846;
-	float quart = 0.25;
-	for (uint8_t x = 0; x < 8; x++) {
-		for (uint8_t y = 0; y < 8; y++) {
-			float usum = 0.0;
-			for(uint8_t u = 0; u < 8; u++) {
-				float cu = (u == 0) ? 0.707106781 : 1;
-				float vsum = 0.0;
-				for(uint8_t v = 0; v < 8; v++) {
-					float cv = (v == 0) ? 0.707106781 : 1;
-					vsum += ((float) du[(u * 8) + v])  * cu * cv * cos(((2 * (float) x + 1) * (float) u * PI) / 16) * cos(((2 * (float) y + 1) * (float) v * PI) / 16);
-				}
-				usum += vsum;
-			}
-			du_copy[(x * 8) + y] = clamp(quart * usum + 128.0, 0.0, 255.0); //add 128 for 8bit precision, 2048 for 12 bit precision
+
+	if (len == 2) {
+		ret_du[0] = (float) (du[0] + du[1]);
+		ret_du[1] = (float) (du[0] - du[1]);
+	}
+	else {
+		uint8_t h_len = len / 2;
+		float evens[h_len];
+		float odds[h_len];
+		for (uint8_t i = 0; i < h_len; i++) {
+			evens[i] = du[i * 2];
+			odds[i]  = du[(i * 2) + 1];
+		}
+
+		float ret_evens[h_len];
+		float ret_odds[h_len];
+		memset(ret_evens, 0, sizeof(float) * h_len);
+		memset(ret_odds, 0, sizeof(float) * h_len);
+
+		fast_idct(h_len, evens, ret_evens);
+		fast_idct(h_len, odds, ret_odds);
+		
+		for (uint8_t i = 0; i < h_len; i++) {
+			float temp = cos((PI * ((float) i + 0.5)) / (float) len) * ret_odds[i];
+			ret_du[i] = ret_evens[i] + temp;
+			ret_du[len - i - 1] = ret_evens[i] - temp;
 		}
 	}
-
-	memcpy(du, du_copy, sizeof(int16_t) * 64);
-
-	if (0) {
-		printf("idct data unit");
-		for (uint8_t i = 0; i < 64; i++) {
-			if ((i % 8) == 0) {
-				printf("\n");
-			}
-			printf("%d, ", du[i]);
-		}
-		printf("\n");
-	}
-	return 0;
 }
 
 uint8_t clamp(double in, double min, double max) {

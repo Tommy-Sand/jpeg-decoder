@@ -21,6 +21,8 @@ int write_data_unit(Image *img, uint8_t comp, uint16_t x_to_mcu, int16_t *du, ui
 int decode_scan(uint8_t **encoded_data, Image *img, FrameHeader *fh, ScanHeader *sh, HuffTables *hts, QuantTables *qts, RestartInterval ri);
 int decode_data_unit(uint8_t **encoded_data, uint8_t *offset, int16_t *du, HuffTable ac, HuffTable dc, int16_t *pred);
 int32_t idct(int16_t *du);
+void fast_2didct(int16_t du[64]);
+void fast_idct(uint8_t len, float du[len], float ret_du[len]);
 uint8_t clamp(double in, double min, double max);
 int next_byte_restart_marker(uint8_t **ptr, uint8_t *offset);
 int next_byte(uint8_t **ptr, uint8_t *offset);
