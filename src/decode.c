@@ -159,7 +159,6 @@ int decode_scan(uint8_t **encoded_data, Image *img, FrameHeader *fh, ScanHeader 
 				restart_marker(pred, sh->nics);
 				next_byte_restart_marker(encoded_data, &offset);
 			}
-
 		}
 		else if (ret == 2) {
 			printf("End Reached");
@@ -196,16 +195,16 @@ int decode_scan(uint8_t **encoded_data, Image *img, FrameHeader *fh, ScanHeader 
 						free(mcu);
 						return -1;
 					}
+
 					timespec_get(&end, TIME_UTC);
 					uint64_t start_ns = ((uint64_t) start.tv_sec * 1000000000) + start.tv_nsec;
 					uint64_t end_ns = ((uint64_t) end.tv_sec * 1000000000) + end.tv_nsec;
 					uint16_t diff = end_ns - start_ns;
-					/*
 					printf("start: sec(%ld) nanosec(%ld)\n", start.tv_sec, start.tv_nsec);
 					printf("end: sec(%ld) nanosec(%ld)\n", end.tv_sec, end.tv_nsec);
 					printf("Decoding time: %dns\n", diff);
-					*/
 					timespec_get(&start, TIME_UTC);
+
 					if (dequant_data_unit(qt, du) != 0) {
 						free(mcu);
 						return -1;
@@ -215,11 +214,9 @@ int decode_scan(uint8_t **encoded_data, Image *img, FrameHeader *fh, ScanHeader 
 					start_ns = ((uint64_t) start.tv_sec * 1000000000) + start.tv_nsec;
 					end_ns = ((uint64_t) end.tv_sec * 1000000000) + end.tv_nsec;
 					diff = end_ns - start_ns;
-					/*
 					printf("start: sec(%ld) nanosec(%ld)\n", start.tv_sec, start.tv_nsec);
 					printf("end: sec(%ld) nanosec(%ld)\n", end.tv_sec, end.tv_nsec);
 					printf("Dequantizing time: %dns\n", diff);
-					*/
 					timespec_get(&start, TIME_UTC);
 					if (idct(du) != 0) {
 						free(mcu);
@@ -229,15 +226,12 @@ int decode_scan(uint8_t **encoded_data, Image *img, FrameHeader *fh, ScanHeader 
 					start_ns = ((uint64_t) start.tv_sec * 1000000000) + start.tv_nsec;
 					end_ns = ((uint64_t) end.tv_sec * 1000000000) + end.tv_nsec;
 					diff = end_ns - start_ns;
-					/*
 					printf("start: sec(%ld) nanosec(%ld)\n", start.tv_sec, start.tv_nsec);
 					printf("end: sec(%ld) nanosec(%ld)\n", end.tv_sec, end.tv_nsec);
 					printf("IDCT time: %dns\n", diff);
-					*/
 				}
 			}
 		}
-		//print_mcu();
 		write_mcu(img, mcu, fh);
 		mcus_read++;
 	}
@@ -334,15 +328,8 @@ int decode_data_unit(uint8_t **encoded_data, uint8_t *offset, int16_t *du, HuffT
 				}
 				continue;
 			}
-			
-			/*
-			if (curr_code == 511) {
-				printf("Found him\n");
-			}
-			*/
 
 			if (ac_huff.max_codes[j] >= curr_code) {
-				//printf("j: %d, curr_code: %d, ac_huff.min_codes: %d\n", j + 1, curr_code, ac_huff.min_codes[j]);
 				mag = (uint8_t) *(ac_huff.symbols[j] + (uint8_t) (curr_code - ac_huff.min_codes[j]));
 				break;
 			}
@@ -441,7 +428,6 @@ uint8_t clamp(double in, double min, double max) {
 	}
 	return (in < min) ? (uint8_t) min : (uint8_t) round(in);
 }
-
 
 /**
  * ret: 0 next byte
