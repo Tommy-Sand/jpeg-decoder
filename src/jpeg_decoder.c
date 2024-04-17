@@ -175,14 +175,6 @@ int main(int argc, char *argv[]) {
 					break;
 				case 0xDA: //SOS
 					printf("DEBUG: SOS\n");
-					if (sh == NULL) {
-						sh = new_scan_header();
-						if (sh == NULL) {
-							printf("Cannot allocate memory for sh");
-							return -1;
-						}
-					}
-					*/
 
 					if (decode_scan_header(&ptr, &sh) != 0) {
 						printf("DEBUG: Scan Header read failed\n");
