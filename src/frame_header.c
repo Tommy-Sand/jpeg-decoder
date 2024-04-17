@@ -113,11 +113,13 @@ void print_frame_header(FrameHeader *fh) {
 		   "Precision: %d,\n"
 		   "X: %d,\n"
 		   "Y: %d,\n"
-		   "ncs: %d,\n",
+		   "ncs: %d,\n"
+		   "process: %s,\n",
 	 	   (int) fh->precision,
 		   fh->X,
 		   fh->Y,
-		   fh->ncs
+		   fh->ncs,
+		   encoding_str(fh->process)
 	);
 
 	print_component(fh->cs, fh->ncs);
@@ -145,4 +147,36 @@ void print_component(Component *comp, int len) {
 			   c->qtid
 		);
 	}
+}
+
+char *encoding_str(Encoding process) {
+	switch (process) {
+		case BDCT:
+			return "Baseline DCT";
+		case ESDCTHC:
+			return "Extended Sequential DCT Huffman Coding";
+		case PDCTHC:
+			return "Progressive DCT Huffman Coding";
+		case LSHC:
+			return "Lossless (Sequential) Huffman Coding";
+		case DSDCTHC: 
+			return "Differential Sequential DCT Huffman Coding";
+		case DPDCTHC:
+			return "Differential Progressive DCT Huffman Coding";
+		case DLSHC:
+			return "Differential Lossless (Sequential) Huffman Coding";
+		case ESDCTAC:
+			return "Extended sequential DCT Arithmetic Coding";
+		case PDCTAC:
+			return "Progressive DCT Arithmetic Coding";
+		case LSAC:
+			return "Lossless (sequential) Arithmetic Coding";
+		case DSDCTAC: 
+			return "Differential Sequential DCT Arithmetic Coding";
+		case DPDCTAC:
+			return "Differential Progressive DCT Arithmetic Coding";
+		case DLSAC:
+			return "Differential Lossless (Sequential) Arithmetic Coding";
+	}
+	return "Unknown encoding scheme";
 }
