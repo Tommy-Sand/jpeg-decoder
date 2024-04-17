@@ -2,10 +2,6 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-ScanHeader *new_scan_header() {
-	return (ScanHeader *) malloc(sizeof(ScanHeader));
-}
-
 int32_t decode_scan_header(uint8_t **encoded_data, ScanHeader *sh) {
 	if (encoded_data == NULL || *encoded_data == NULL || sh == NULL) {
 		return -1;
@@ -50,17 +46,6 @@ int32_t decode_scan_header(uint8_t **encoded_data, ScanHeader *sh) {
 	}
 
 	*encoded_data = ptr;
-	return 0;
-}
-
-int32_t free_scan_header (ScanHeader *sh) {
-	if (sh == NULL) {
-		return -1;
-	}
-	if (sh->ics != NULL) {
-		free(sh->ics);
-	}
-	free(sh);
 	return 0;
 }
 

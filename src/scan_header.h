@@ -16,11 +16,7 @@ typedef struct {
 	uint8_t al;
 } ScanHeader;
 
-ScanHeader *new_scan_header();
-
 int32_t decode_scan_header(uint8_t **encoded_data, ScanHeader *sh);
-
-int32_t free_scan_header(ScanHeader *sh);
 
 void print_scan_header(ScanHeader *sh);
 
