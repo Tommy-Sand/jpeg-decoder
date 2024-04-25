@@ -35,33 +35,6 @@ Image *allocate_img(FrameHeader *fh) {
 	return img;
 }
 
-void print_mcu(Image *img, int16_t (**mcu)[64], FrameHeader *fh) {
-	for (uint8_t i = 0; i < fh->ncs; i++) {
-		Component *c = fh->cs + i;
-		for (uint8_t j = 0; j < c->vsf; j++) {
-			for(uint8_t k = 0; k < c->hsf; k++) {
-				uint16_t x_to_mcu = c->x + ((c->x % (8 * c->hsf)) ? (8 * c->hsf - (c->x % (8 * c->hsf))) : 0);
-				uint16_t mcu_progress = img->mcu;
-				uint16_t x = ((mcu_progress * c->hsf * 8) + (k * 8)) % x_to_mcu; 
-				uint16_t y = ((((mcu_progress * c->hsf * 8) + (k * 8)) / x_to_mcu) * c->vsf * 8) + (j * 8); 
-				uint16_t y = ((((mcu_progress * c->hsf * 8) + (k * 8)) / x_to_mcu) * c->vsf * 8); 
-
-				if (mcu_progress == 0) {
-					printf("DU: %d\n", (j * c->hsf) + k);
-					printf("x: %d, y: %d\n", x, y);
-				}
-
-				int16_t *du = *((*(mcu + i)) + ((j * c->hsf) + k));
-
-				write_data_unit(img, i, x_to_mcu, du, x, y);
-			}
-		}
-	}
-	img->mcu++;
-	return;
-
-}
-
 int write_mcu(Image *img, int16_t (**mcu)[64], FrameHeader *fh) {
 	for (uint8_t i = 0; i < fh->ncs; i++) {
 		Component *c = fh->cs + i;
@@ -71,7 +44,6 @@ int write_mcu(Image *img, int16_t (**mcu)[64], FrameHeader *fh) {
 				uint16_t mcu_progress = img->mcu;
 				uint16_t x = ((mcu_progress * c->hsf * 8) + (k * 8)) % x_to_mcu; 
 				uint16_t y = ((((mcu_progress * c->hsf * 8) + (k * 8)) / x_to_mcu) * c->vsf * 8) + (j * 8); 
-				//uint16_t y = ((((mcu_progress * c->hsf * 8) + (k * 8)) / x_to_mcu) * c->vsf * 8); 
 
 				if (mcu_progress == 0) {
 					printf("DU: %d\n", (j * c->hsf) + k);
@@ -132,15 +104,13 @@ int decode_scan(uint8_t **encoded_data, Image *img, FrameHeader *fh, ScanHeader 
 	}
 
 	//For performace measurement
+	/*
 	struct timespec start;
 	struct timespec end;
+	*/
 	
 	uint32_t mcus_read = 0;
 	while(!EOI) {
-		if (mcus_read == 24576) {
-			printf("\n");
-		}
-
 		uint8_t ret = check_marker(encoded_data);
 		if ((ri != 0) && ((mcus_read % ri) == 0) && ret == 1) {	
 			if (ret == 1) {
@@ -178,12 +148,13 @@ int decode_scan(uint8_t **encoded_data, Image *img, FrameHeader *fh, ScanHeader 
 					if(!du) {
 						return -1;
 					}
-					timespec_get(&start, TIME_UTC);
+					//timespec_get(&start, TIME_UTC);
 					if (decode_data_unit(encoded_data, &offset, du, dc, ac, pred + i) != 0) {
 						free(mcu);
 						return -1;
 					}
 
+					/*
 					timespec_get(&end, TIME_UTC);
 					uint64_t start_ns = ((uint64_t) start.tv_sec * 1000000000) + start.tv_nsec;
 					uint64_t end_ns = ((uint64_t) end.tv_sec * 1000000000) + end.tv_nsec;
@@ -192,12 +163,14 @@ int decode_scan(uint8_t **encoded_data, Image *img, FrameHeader *fh, ScanHeader 
 					printf("end: sec(%ld) nanosec(%ld)\n", end.tv_sec, end.tv_nsec);
 					printf("Decoding time: %dns\n", diff);
 					timespec_get(&start, TIME_UTC);
+					*/
 
 					if (dequant_data_unit(qt, du) != 0) {
 						free(mcu);
 						return -1;
 					}
 
+					/*
 					timespec_get(&end, TIME_UTC);
 					start_ns = ((uint64_t) start.tv_sec * 1000000000) + start.tv_nsec;
 					end_ns = ((uint64_t) end.tv_sec * 1000000000) + end.tv_nsec;
@@ -206,9 +179,11 @@ int decode_scan(uint8_t **encoded_data, Image *img, FrameHeader *fh, ScanHeader 
 					printf("end: sec(%ld) nanosec(%ld)\n", end.tv_sec, end.tv_nsec);
 					printf("Dequantizing time: %dns\n", diff);
 					timespec_get(&start, TIME_UTC);
+					*/
 
 					fast_2didct(du); 
 
+					/*
 					timespec_get(&end, TIME_UTC);
 					start_ns = ((uint64_t) start.tv_sec * 1000000000) + start.tv_nsec;
 					end_ns = ((uint64_t) end.tv_sec * 1000000000) + end.tv_nsec;
@@ -216,6 +191,7 @@ int decode_scan(uint8_t **encoded_data, Image *img, FrameHeader *fh, ScanHeader 
 					printf("start: sec(%ld) nanosec(%ld)\n", start.tv_sec, start.tv_nsec);
 					printf("end: sec(%ld) nanosec(%ld)\n", end.tv_sec, end.tv_nsec);
 					printf("IDCT time: %dns\n", diff);
+					*/
 				}
 			}
 		}
@@ -241,7 +217,6 @@ int decode_scan(uint8_t **encoded_data, Image *img, FrameHeader *fh, ScanHeader 
 }
 
 int decode_data_unit(uint8_t **encoded_data, uint8_t *offset, int16_t *du, HuffTable dc_huff, HuffTable ac_huff, int16_t *pred) {
-
 	if (**encoded_data == 0xC7 && *(*encoded_data + 1) == 0xD2 && *(*encoded_data + 2) == 0x97) {
 		printf("\n");
 	}
@@ -354,39 +329,37 @@ int decode_data_unit(uint8_t **encoded_data, uint8_t *offset, int16_t *du, HuffT
 		du[i] = amp;
 	}
 
-	if (0) {
-		printf("\n");
-		printf("decoded data block\n");
-		for (uint8_t i = 0; i < 64; i++) {
-			if (i % 8 == 0) {
-				printf("\n");
-			}
-			printf("%d, ", du[i]);
-		}
-		printf("\n");
-		log_du1--;
-	}
-
 	*encoded_data = ptr;
 	return 0;
 }
 
 void fast_2didct(int16_t du[64]) {
-	float du_float[64] = {0.0};
+	complex double cdu[64] = {0.0};
 	for (uint8_t i = 0; i < 64; i++) {
-		du_float[i] = (float) du[i];
+		cdu[i] = (complex double) du[i];
 	}
 	for (uint8_t i = 0; i < 8; i++) {
-		du_float[i] = 0.707106781 * du_float[i];
-		du_float[i * 8] = 0.707106781 * du_float[i * 8];
+		cdu[i] *= 0.707106781;
+		cdu[i * 8] *= 0.707106781;
 	}
 
-	float ret_dux[64] = {0};
+	complex double ret_dux[64] = {0};
 	for (uint8_t i = 0; i < 8; i++) {
-		fast_idct(8, ((float *) du_float) + (i * 8), ((float *) ret_dux) + (i * 8));
+		fast_idct(cdu + (i * 8), ret_dux + (i * 8));
 	}
 
-	float in_duy[64] = {0};
+	/*
+	printf("row:\n");
+	for (uint8_t i = 0; i < 8; i++) {
+		for (uint8_t j = 0; j < 8; j++) {
+			printf("%f ", ret_dux[i*8 + j]);
+		}
+		printf("\n");
+	}
+	printf("\n");
+	*/
+
+	complex double in_duy[64] = {0};
 	for (uint8_t j = 0; j < 8; j++) {
 		in_duy[j * 8] = ret_dux[j];
 		in_duy[(j * 8) + 1] = ret_dux[j + 8];
@@ -398,9 +371,9 @@ void fast_2didct(int16_t du[64]) {
 		in_duy[(j * 8) + 7] = ret_dux[j + 56]; 
 	}
 
-	float ret_duy[64] = {0};
+	complex double ret_duy[64] = {0};
 	for (uint8_t k = 0; k < 8; k++) {
-		fast_idct(8, ((float *) in_duy) + (k * 8), ((float *) ret_duy) + (k * 8));
+		fast_idct(in_duy + (k * 8), ret_duy + (k * 8));
 	}
 
 	//transpose
@@ -418,36 +391,57 @@ void fast_2didct(int16_t du[64]) {
 }
 
 //Start with a vector of 8 inputs
-void fast_idct(uint8_t len, float du[len], float ret_du[len]) {
+void fast_idct(complex double du[8], complex double ret_du[8]) {
 	const float PI =  3.14159265358979323846;
 
-	if (len == 2) {
-		ret_du[0] = (float) (du[0] + du[1]);
-		ret_du[1] = (float) (du[0] - du[1]);
-	}
-	else {
-		uint8_t h_len = len / 2;
-		float evens[h_len];
-		float odds[h_len];
-		for (uint8_t i = 0; i < h_len; i++) {
-			evens[i] = du[i * 2];
-			odds[i]  = du[(i * 2) + 1];
-		}
+	complex double temp_du[8];
+	temp_du[0] = du[0];
+    for (uint8_t k = 1; k < 8; k++) {
+        complex double temp_exp = cexp((I * PI * (float) k / (float) (2 * 8)));
+        complex double temp_diff = (du[k] - I * du[8 - k]);
+        temp_du[k] = 0.5 * temp_exp * temp_diff;
+    }
 
-		float ret_evens[h_len];
-		float ret_odds[h_len];
-		memset(ret_evens, 0, sizeof(float) * h_len);
-		memset(ret_odds, 0, sizeof(float) * h_len);
+	complex double ifft_ret_du[8];
+	ifft(8, temp_du, 1, ifft_ret_du);
 
-		fast_idct(h_len, evens, ret_evens);
-		fast_idct(h_len, odds, ret_odds);
-		
-		for (uint8_t i = 0; i < h_len; i++) {
-			float temp = cos((PI * ((float) i + 0.5)) / (float) len) * ret_odds[i];
-			ret_du[i] = ret_evens[i] + temp;
-			ret_du[len - i - 1] = ret_evens[i] - temp;
+    for(uint8_t i = 0; i < 8; i++) {
+        if (i <= (7/2)) {
+            ret_du[2*i] = ifft_ret_du[i];
+        }
+        else {
+            ret_du[16 - (2 * i) - 1] = ifft_ret_du[i];
+        }
+    }
+}
+
+void ifft(uint8_t len, complex double du[len], uint8_t stride, complex double ret_du[len]) {
+	const float PI =  3.14159265358979323846;
+
+    if (len == 1) {
+        ret_du[0] = du[0];
+        return;
+    } else {
+        complex double copy_du[len];
+        memcpy(copy_du, du, sizeof(complex double) * len);
+        complex double temp_ret_du[len];
+        
+        ifft(len/2, du, 2 * stride, ret_du);
+        ifft(len/2, du + stride, 2 * stride, ret_du + len/2);
+        
+        complex double copy_du2[len];
+        memcpy(copy_du2, ret_du, sizeof(complex double) * len);
+        for (uint8_t i = 0; i < len/2; i++) {
+            complex double temp_ret = ret_du[len/2 + i];
+            complex double temp1 = cexp((I * PI * (float) (2*i) / (float) (len)));
+            complex double temp2 = temp1 * temp_ret;
+            temp_ret_du[i] = ret_du[i] + temp2;
+            temp_ret_du[len/2 + i] = ret_du[i] - temp2;
+        }
+        for (uint8_t i = 0; i < len; i++) {
+            ret_du[i] = temp_ret_du[i];
 		}
-	}
+    }
 }
 
 uint8_t clamp(double in, double min, double max) {
@@ -456,30 +450,6 @@ uint8_t clamp(double in, double min, double max) {
 	}
 	return (in < min) ? (uint8_t) min : (uint8_t) round(in);
 }
-
-/**
- * ret: 0 next byte
- *      1 restart marker
- *      2 byte stuffing
- */
-/*
-int next_byte(uint8_t **ptr) {
-	uint8_t byte = **ptr;
-	if (byte == 0xFF) {
-		byte = *(*ptr + 1);
-		if (byte == 0x00) {
-			//Byte is stuffed and we can skip the 00
-			*ptr = *ptr + 2;
-			return 1;
-		}
-		else if (byte >= 0xD0 && byte <= 0xD7) {
-			return 2;
-		}
-	}
-	++(*ptr);
-	return 0;
-}
-*/
 
 /**
  * ret: 0 next byte

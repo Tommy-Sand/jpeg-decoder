@@ -6,6 +6,7 @@
 #include "restart_interval.h"
 #include <stdbool.h>
 #include "huff_table.h"
+#include <complex.h>
 
 typedef struct {
 	uint8_t **buf;
@@ -22,7 +23,8 @@ int decode_scan(uint8_t **encoded_data, Image *img, FrameHeader *fh, ScanHeader 
 int decode_data_unit(uint8_t **encoded_data, uint8_t *offset, int16_t *du, HuffTable ac, HuffTable dc, int16_t *pred);
 int32_t idct(int16_t *du);
 void fast_2didct(int16_t du[64]);
-void fast_idct(uint8_t len, float du[len], float ret_du[len]);
+void fast_idct(complex double du[8], complex double ret_du[8]);
+void ifft(uint8_t len, complex double du[len], uint8_t stride, complex double ret_du[len]);
 uint8_t clamp(double in, double min, double max);
 int next_byte_restart_marker(uint8_t **ptr, uint8_t *offset);
 int next_byte(uint8_t **ptr, uint8_t *offset);
