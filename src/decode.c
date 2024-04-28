@@ -45,11 +45,6 @@ int write_mcu(Image *img, int16_t (**mcu)[64], FrameHeader *fh) {
 				uint16_t x = ((mcu_progress * c->hsf * 8) + (k * 8)) % x_to_mcu; 
 				uint16_t y = ((((mcu_progress * c->hsf * 8) + (k * 8)) / x_to_mcu) * c->vsf * 8) + (j * 8); 
 
-				if (mcu_progress == 0) {
-					printf("DU: %d\n", (j * c->hsf) + k);
-					printf("x: %d, y: %d\n", x, y);
-				}
-
 				int16_t *du = *((*(mcu + i)) + ((j * c->hsf) + k));
 
 				write_data_unit(img, i, x_to_mcu, du, x, y);
@@ -103,12 +98,6 @@ int decode_scan(uint8_t **encoded_data, Image *img, FrameHeader *fh, ScanHeader 
 		*(mcu + i) = dus;
 	}
 
-	//For performace measurement
-	/*
-	struct timespec start;
-	struct timespec end;
-	*/
-	
 	uint32_t mcus_read = 0;
 	while(!EOI) {
 		uint8_t ret = check_marker(encoded_data);
@@ -148,92 +137,37 @@ int decode_scan(uint8_t **encoded_data, Image *img, FrameHeader *fh, ScanHeader 
 					if(!du) {
 						return -1;
 					}
-					//timespec_get(&start, TIME_UTC);
 					if (decode_data_unit(encoded_data, &offset, du, dc, ac, pred + i) != 0) {
 						free(mcu);
 						return -1;
 					}
-
-					/*
-					timespec_get(&end, TIME_UTC);
-					uint64_t start_ns = ((uint64_t) start.tv_sec * 1000000000) + start.tv_nsec;
-					uint64_t end_ns = ((uint64_t) end.tv_sec * 1000000000) + end.tv_nsec;
-					uint16_t diff = end_ns - start_ns;
-					printf("start: sec(%ld) nanosec(%ld)\n", start.tv_sec, start.tv_nsec);
-					printf("end: sec(%ld) nanosec(%ld)\n", end.tv_sec, end.tv_nsec);
-					printf("Decoding time: %dns\n", diff);
-					timespec_get(&start, TIME_UTC);
-					*/
 
 					if (dequant_data_unit(qt, du) != 0) {
 						free(mcu);
 						return -1;
 					}
 
-					/*
-					timespec_get(&end, TIME_UTC);
-					start_ns = ((uint64_t) start.tv_sec * 1000000000) + start.tv_nsec;
-					end_ns = ((uint64_t) end.tv_sec * 1000000000) + end.tv_nsec;
-					diff = end_ns - start_ns;
-					printf("start: sec(%ld) nanosec(%ld)\n", start.tv_sec, start.tv_nsec);
-					printf("end: sec(%ld) nanosec(%ld)\n", end.tv_sec, end.tv_nsec);
-					printf("Dequantizing time: %dns\n", diff);
-					timespec_get(&start, TIME_UTC);
-					*/
-
 					fast_2didct(du); 
 
-					/*
-					timespec_get(&end, TIME_UTC);
-					start_ns = ((uint64_t) start.tv_sec * 1000000000) + start.tv_nsec;
-					end_ns = ((uint64_t) end.tv_sec * 1000000000) + end.tv_nsec;
-					diff = end_ns - start_ns;
-					printf("start: sec(%ld) nanosec(%ld)\n", start.tv_sec, start.tv_nsec);
-					printf("end: sec(%ld) nanosec(%ld)\n", end.tv_sec, end.tv_nsec);
-					printf("IDCT time: %dns\n", diff);
-					*/
 				}
 			}
 		}
 		write_mcu(img, mcu, fh);
 		mcus_read++;
 	}
-
-	if (0) {
-		for (uint8_t i = 0; i < img->n_du; i++) {
-			Component *c = fh->cs + i;
-			uint8_t *buf = *(img->buf + i);
-			printf("\n");
-			for (uint16_t j = 0; j < 1; j++) {
-				printf("\n");
-				for (uint16_t k = 0; k < c->x; k++) {
-					printf("%d ", *(buf + (c->x * j) + k));
-				}
-			}
-		}
-		printf("\n");
-	}
 	return 0;	
 }
 
 int decode_data_unit(uint8_t **encoded_data, uint8_t *offset, int16_t *du, HuffTable dc_huff, HuffTable ac_huff, int16_t *pred) {
-	if (**encoded_data == 0xC7 && *(*encoded_data + 1) == 0xD2 && *(*encoded_data + 2) == 0x97) {
-		printf("\n");
-	}
-
 	uint8_t *ptr = *encoded_data;
 
 	if (*offset >= 8) {
-		if (next_byte(&ptr, offset) == 1) {
-			//restart_marker();
-		}
+		next_byte(&ptr, offset);
 	}
 
 	int16_t curr_code = (*ptr >> (7 - ((*offset)++))) & 0x1;
 	if (*offset >= 8) {
-		if (next_byte(&ptr, offset) == 1) {
-			//restart_marker();
-		}
+		next_byte(&ptr, offset);
 	}
 	uint8_t mag = 0;
 	for (uint8_t i = 0; i < 16; i++) {
@@ -348,17 +282,6 @@ void fast_2didct(int16_t du[64]) {
 		fast_idct(cdu + (i * 8), ret_dux + (i * 8));
 	}
 
-	/*
-	printf("row:\n");
-	for (uint8_t i = 0; i < 8; i++) {
-		for (uint8_t j = 0; j < 8; j++) {
-			printf("%f ", ret_dux[i*8 + j]);
-		}
-		printf("\n");
-	}
-	printf("\n");
-	*/
-
 	complex double in_duy[64] = {0};
 	for (uint8_t j = 0; j < 8; j++) {
 		in_duy[j * 8] = ret_dux[j];
@@ -397,22 +320,28 @@ void fast_idct(complex double du[8], complex double ret_du[8]) {
 	complex double temp_du[8];
 	temp_du[0] = du[0];
     for (uint8_t k = 1; k < 8; k++) {
-        complex double temp_exp = cexp((I * PI * (float) k / (float) (2 * 8)));
-        complex double temp_diff = (du[k] - I * du[8 - k]);
-        temp_du[k] = 0.5 * temp_exp * temp_diff;
+        temp_du[k] = 0.5 * cexp(I * PI * (float) k / 16.0) * (du[k] - I * du[8 - k]);
     }
 
-	complex double ifft_ret_du[8];
-	ifft(8, temp_du, 1, ifft_ret_du);
+	complex double packed[4];
+	for(uint8_t i = 0; i < 4; i++) {
+		packed[i] = (0.5 * (temp_du[i] + temp_du[4 + i])) +
+			 (0.5 * I * cexp (I * PI * 2.0 * i / 8.0) * (temp_du[i] - temp_du[4 + i]));
+	}
 
-    for(uint8_t i = 0; i < 8; i++) {
-        if (i <= (7/2)) {
-            ret_du[2*i] = ifft_ret_du[i];
-        }
-        else {
-            ret_du[16 - (2 * i) - 1] = ifft_ret_du[i];
-        }
-    }
+	complex double ifft_ret_du[4];
+	ifft(4, packed, 1, ifft_ret_du);
+
+	complex double unpacked_du[8];
+	for (uint8_t i = 0; i < 4; i++) {
+		unpacked_du[2 * i] = 2 * creal(ifft_ret_du[i]);
+		unpacked_du[2 * i + 1] = 2 * cimag(ifft_ret_du[i]);
+	}
+
+	for (uint8_t i = 0; i < 4; i++) {
+		ret_du[2*i] = unpacked_du[i];
+		ret_du[16 - 1 - (2 * (4 + i))] = unpacked_du[4 + i];
+	}
 }
 
 void ifft(uint8_t len, complex double du[len], uint8_t stride, complex double ret_du[len]) {
