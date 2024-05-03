@@ -8,7 +8,7 @@ jpeg_decoder: $(OBJ_FILES)
 	gcc -o $(BUILD_DIR)jpeg_decoder $(BUILD_DIR)jpeg_decoder.o $(BUILD_DIR)scan_header.o $(BUILD_DIR)huff_table.o $(BUILD_DIR)quant_table.o $(BUILD_DIR)frame_header.o $(BUILD_DIR)restart_interval.o $(BUILD_DIR)decode.o $(EXT_LIBS)
 
 jpeg_decoder.o:
-	gcc -g -c -Wall -std=c17 -o $(BUILD_DIR)jpeg_decoder.o $(SRC_DIR)jpeg_decoder.c
+	gcc -g -c -Wall -ffast-math -std=c17 -o $(BUILD_DIR)jpeg_decoder.o $(SRC_DIR)jpeg_decoder.c
 
 scan_header.o:
 	gcc -g -c -Wall -std=c17 -o $(BUILD_DIR)scan_header.o $(SRC_DIR)scan_header.c
@@ -26,7 +26,7 @@ restart_interval.o:
 	gcc -g -c -Wall -std=c17 -o $(BUILD_DIR)restart_interval.o $(SRC_DIR)restart_interval.c
 	
 decode.o: 
-	gcc -g -c -Wall -std=c17 -o $(BUILD_DIR)decode.o $(SRC_DIR)decode.c
+	gcc -g -c -Wall -ffast-math -std=c17 -o $(BUILD_DIR)decode.o $(SRC_DIR)decode.c
 
 clean:
 	rm $(BUILD_DIR)*

@@ -12,6 +12,7 @@
 int display_image(int width, int height, SDL_Surface *image);
 int read_app_segment(uint8_t **encoded_data);
 
+
 int main(int argc, char *argv[]) {
 	if (argc < 2) {
 		fprintf(stderr, "Need file path\n");
