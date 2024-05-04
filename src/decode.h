@@ -15,6 +15,7 @@ typedef struct {
 } Image;
 
 Image *allocate_img(FrameHeader *fh);
+void free_img(Image *img);
 //int decode_img(uint8_t **encoded_data, FrameHeader *fh, ScanHeader *sh, HuffTables *hts, QuantTables *qts);
 //int write_data_unit(Image *img, int16_t *du, uint8_t horz, uint8_t vert, FrameHeader *fh, uint8_t comp);
 int write_mcu(Image *img, int16_t (**mcu)[64], FrameHeader *fh);

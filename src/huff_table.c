@@ -131,9 +131,23 @@ int32_t free_huff_tables(HuffTables *hts) {
 	HuffTable *DC = hts->DCAC[0];
 	HuffTable *AC = hts->DCAC[1];
 	if (DC != NULL) {
+		if (DC->symbols != NULL) {
+			for(uint8_t i = 0; i < hts->nDCAC; i++) {
+				for(uint8_t j = 0; j < 16; j++) {
+					free((DC + i)->symbols[j]);
+				}
+			}
+		}
 		free(DC);
 	}
 	if (AC != NULL) {
+		if (AC->symbols != NULL) {
+			for(uint8_t i = 0; i < hts->nDCAC; i++) {
+				for(uint8_t j = 0; j < 16; j++) {
+					free((AC + i)->symbols[j]);
+				}
+			}
+		}
 		free(AC);
 	}
 	free(hts);

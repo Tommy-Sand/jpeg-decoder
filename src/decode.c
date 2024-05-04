@@ -37,6 +37,14 @@ Image *allocate_img(FrameHeader *fh) {
 	return img;
 }
 
+void free_img(Image *img) {
+	for (uint8_t i = 0; i < img->n_du; i++) {
+		free(img->buf[i]);
+	}
+	free(img->buf);
+	free(img);
+}
+
 int write_mcu(Image *img, int16_t (**mcu)[64], FrameHeader *fh) {
 	for (uint8_t i = 0; i < fh->ncs; i++) {
 		Component *c = fh->cs + i;

@@ -148,7 +148,6 @@ int main(int argc, char *argv[]) {
 						printf("DEBUG: Huff Table read failed\n");
 						return -1;
 					}
-					print_huff_tables(hts);
 					break;
 
 				case 0xCC: //Define arithmetic coding conditioning(s)
@@ -276,6 +275,8 @@ int main(int argc, char *argv[]) {
 		}
 	}
 	
+	print_huff_tables(hts);
+
 	if (!fh) {
 		return -1;
 	}
@@ -355,8 +356,10 @@ int main(int argc, char *argv[]) {
 			}
 		}
 	}
+	free_img(img);
 
 	display_image(width, height, img_surface);
+	SDL_FreeSurface(img_surface);
 	SDL_Quit();
 
 	free(buf);
