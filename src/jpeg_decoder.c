@@ -354,10 +354,10 @@ int main(int argc, char *argv[]) {
 
 			}
 		}
-
 	}
 
 	display_image(width, height, img_surface);
+	SDL_Quit();
 
 	free(buf);
 	if (fh != NULL) {

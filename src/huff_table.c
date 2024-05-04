@@ -130,13 +130,11 @@ int32_t free_huff_tables(HuffTables *hts) {
 	}
 	HuffTable *DC = hts->DCAC[0];
 	HuffTable *AC = hts->DCAC[1];
-	for(uint8_t i = 0; i < hts->nDCAC; i++) {
-		if (DC != NULL) {
-			//TODO finish this
-		}
-		if (AC != NULL) {
-			free(AC + i);
-		}
+	if (DC != NULL) {
+		free(DC);
+	}
+	if (AC != NULL) {
+		free(AC);
 	}
 	free(hts);
 	return 0;

@@ -157,6 +157,11 @@ int decode_scan(uint8_t **encoded_data, Image *img, FrameHeader *fh, ScanHeader 
 		write_mcu(img, mcu, fh);
 		mcus_read++;
 	}
+
+	for(uint8_t i = 0; i < sh->nics; i++) {
+		free(*(mcu + i));
+	}
+	free(mcu);
 	return 0;	
 }
 
