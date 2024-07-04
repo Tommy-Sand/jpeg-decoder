@@ -3,6 +3,14 @@
 #include <SDL2/SDL.h>
 #include <stdbool.h>
 #include <sys/types.h>
+#include <errno.h>
+#include <fcntl.h>
+#include <stdint.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <sys/stat.h>
+#include <sys/mman.h>
+#include <unistd.h>
 
 #include "decode.h"
 #include "frame_header.h"
@@ -11,8 +19,10 @@
 #include "restart_interval.h"
 #include "scan_header.h"
 
+
 int display_image(int width, int height, SDL_Surface* image);
 int read_app_segment(uint8_t** encoded_data);
+int mmap_file(const char *filename, uint8_t **data);
 
 int main(int argc, char* argv[]) {
     if (argc < 2) {
@@ -20,27 +30,12 @@ int main(int argc, char* argv[]) {
         return -1;
     }
 
-    struct stat st;
-    stat(argv[1], &st);
-    off_t size = st.st_size;
-
-    uint8_t* buf = (uint8_t*)malloc(size * sizeof(uint8_t));
-
-    FILE* file;
-
-    file = fopen(argv[1], "rb");
-    if (file == NULL) {
-        fprintf(stderr, "File does not exist\n");
-        return -1;
-    }
-
-    if (fread(buf, sizeof(uint8_t), size, file) != sizeof(uint8_t) * size) {
-        fprintf(stderr, "File was not properly read\n");
-        fclose(file);
-        return -1;
-    }
-
-    fclose(file);
+	uint8_t *buf;
+	size_t size = mmap_file(argv[1], &buf);
+	if (size == -1) {
+		return -1;
+	}
+	printf("length: %lu\n", size);
 
     //switch statement for markers
     FrameHeader* fh = new_frame_header();
@@ -381,7 +376,7 @@ int main(int argc, char* argv[]) {
     SDL_FreeSurface(img_surface);
     SDL_Quit();
 
-    free(buf);
+    munmap(buf, size);
     if (fh != NULL) {
         free_frame_header(fh);
     }
@@ -429,4 +424,32 @@ int read_app_segment(uint8_t** encoded_data) {
 
     *encoded_data += len;
     return 0;
+}
+
+int mmap_file(const char *filename, uint8_t **data) {
+    struct stat st;
+    if (stat(filename, &st) == -1) {
+		fprintf(stderr, "Could not get size of file, %s", strerror(errno));
+		return -1;
+	}
+    off_t len = st.st_size;
+
+	int fd = open(filename, O_RDONLY);
+	if (fd == -1) {
+		fprintf(stderr, "Could not open file, %s", strerror(errno));
+		return -1;
+	}
+
+	void *mmap_ret = mmap(NULL, len, PROT_READ, MAP_SHARED, fd, 0);
+	if (mmap_ret == (void *) -1) {
+		fprintf(stderr, "Could not get contents of file, %s", strerror(errno));
+		return -1;
+	}
+	*data = mmap_ret;
+	
+	if (close(fd) == -1) {
+		fprintf(stderr, "Could not close file descriptor, %s", strerror(errno));
+		return -1;
+	};
+	return len;
 }
