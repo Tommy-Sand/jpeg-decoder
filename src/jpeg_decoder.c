@@ -1,5 +1,3 @@
-#include "jpeg_decoder.h"
-
 #include <SDL2/SDL.h>
 #include <stdbool.h>
 #include <sys/types.h>
