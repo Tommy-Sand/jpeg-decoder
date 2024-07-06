@@ -14,7 +14,7 @@ Image* allocate_img(FrameHeader* fh) {
     if (!img) {
         return NULL;
     }
-    img->buf = (uint8_t**)calloc(fh->ncs, sizeof(uint8_t*));
+    img->buf = (uint8_t**) calloc(fh->ncs, sizeof(uint8_t*));
     if (!img->buf) {
         free(img);
         return NULL;
@@ -27,7 +27,7 @@ Image* allocate_img(FrameHeader* fh) {
         uint16_t y_to_mcu = c->y
             + ((c->y % (8 * c->vsf)) ? (8 * c->vsf - (c->y % (8 * c->vsf))) : 0
             );
-        img->buf[i] = (uint8_t*)calloc(x_to_mcu * y_to_mcu, sizeof(uint8_t));
+        img->buf[i] = (uint8_t*) calloc(x_to_mcu * y_to_mcu, sizeof(uint8_t));
         if (!(img->buf[i])) {
             for (uint8_t j = 0; j < i; j++) {
                 free(img->buf[j]);
@@ -346,7 +346,7 @@ int write_data_unit(
     for (uint16_t j = y; j < y + 8; j++) {
         for (uint16_t k = x; k < x + 8; k++) {
             *(*(img->buf + comp) + (j * x_to_mcu) + k) =
-                (uint8_t)du[((j - y) * 8) + (k - x)];
+                (uint8_t) du[((j - y) * 8) + (k - x)];
         }
     }
     return 0;
@@ -373,7 +373,7 @@ int decode_scan(
     }
 
     uint8_t EOI = 0;
-    int16_t(**mcu)[] = (int16_t(**)[])calloc(sh->nics, sizeof(int16_t**));
+    int16_t(**mcu)[] = (int16_t(**)[]) calloc(sh->nics, sizeof(int16_t**));
     if (!mcu) {
         return -1;
     }
@@ -391,7 +391,7 @@ int decode_scan(
             return -1;
         }
         int16_t(*dus)[64] =
-            (int16_t(*)[64])calloc(64 * (c->hsf * c->vsf), sizeof(int16_t));
+            (int16_t(*)[64]) calloc(64 * (c->hsf * c->vsf), sizeof(int16_t));
         *(mcu + i) = dus;
     }
 
@@ -543,7 +543,7 @@ int decode_data_unit(
             if (ac_huff.max_codes[j] >= curr_code) {
                 mag = (uint8_t)
                     * (ac_huff.symbols[j]
-                       + (uint8_t)(curr_code - ac_huff.min_codes[j]));
+                       + (uint8_t) (curr_code - ac_huff.min_codes[j]));
                 break;
             }
             curr_code =
@@ -589,7 +589,7 @@ int decode_data_unit(
 void fast_2didct(int16_t du[64]) {
     complex double cdu[64] = {0.0};
     for (uint8_t i = 0; i < 64; i++) {
-        cdu[i] = (complex double)du[i];
+        cdu[i] = (complex double) du[i];
     }
     for (uint8_t i = 0; i < 8; i++) {
         cdu[i] *= 0.707106781;
@@ -620,21 +620,21 @@ void fast_2didct(int16_t du[64]) {
 
     // transpose
     for (uint8_t j = 0; j < 8; j++) {
-        du[j] = (int16_t)CLAMP((0.25 * creal(ret_duy[j * 8])) + 128.0);
+        du[j] = (int16_t) CLAMP((0.25 * creal(ret_duy[j * 8])) + 128.0);
         du[j + 8] =
-            (int16_t)CLAMP((0.25 * creal(ret_duy[(j * 8) + 1])) + 128.0);
+            (int16_t) CLAMP((0.25 * creal(ret_duy[(j * 8) + 1])) + 128.0);
         du[j + 16] =
-            (int16_t)CLAMP((0.25 * creal(ret_duy[(j * 8) + 2])) + 128.0);
+            (int16_t) CLAMP((0.25 * creal(ret_duy[(j * 8) + 2])) + 128.0);
         du[j + 24] =
-            (int16_t)CLAMP((0.25 * creal(ret_duy[(j * 8) + 3])) + 128.0);
+            (int16_t) CLAMP((0.25 * creal(ret_duy[(j * 8) + 3])) + 128.0);
         du[j + 32] =
-            (int16_t)CLAMP((0.25 * creal(ret_duy[(j * 8) + 4])) + 128.0);
+            (int16_t) CLAMP((0.25 * creal(ret_duy[(j * 8) + 4])) + 128.0);
         du[j + 40] =
-            (int16_t)CLAMP((0.25 * creal(ret_duy[(j * 8) + 5])) + 128.0);
+            (int16_t) CLAMP((0.25 * creal(ret_duy[(j * 8) + 5])) + 128.0);
         du[j + 48] =
-            (int16_t)CLAMP((0.25 * creal(ret_duy[(j * 8) + 6])) + 128.0);
+            (int16_t) CLAMP((0.25 * creal(ret_duy[(j * 8) + 6])) + 128.0);
         du[j + 56] =
-            (int16_t)CLAMP((0.25 * creal(ret_duy[(j * 8) + 7])) + 128.0);
+            (int16_t) CLAMP((0.25 * creal(ret_duy[(j * 8) + 7])) + 128.0);
     }
 }
 

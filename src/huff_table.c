@@ -6,16 +6,16 @@
 #include "frame_header.h"
 
 HuffTables* new_huff_tables(Encoding process) {
-    HuffTables* hts = (HuffTables*)malloc(sizeof(HuffTables));
+    HuffTables* hts = (HuffTables*) malloc(sizeof(HuffTables));
     if (process == BDCT) {
         //Baseline DCT only allows for 2 hufftables for each AC and DC
         hts->nDCAC = 2;
-        if ((hts->DCAC[0] = (HuffTable*)malloc(sizeof(HuffTable) * 2))
+        if ((hts->DCAC[0] = (HuffTable*) malloc(sizeof(HuffTable) * 2))
             == NULL) {
             free(hts);
             return NULL;
         }
-        if ((hts->DCAC[1] = (HuffTable*)malloc(sizeof(HuffTable) * 2))
+        if ((hts->DCAC[1] = (HuffTable*) malloc(sizeof(HuffTable) * 2))
             == NULL) {
             free(hts->DCAC[0]);
             free(hts);
@@ -80,7 +80,7 @@ int32_t decode_huff_tables(uint8_t** encoded_data, HuffTables* hts) {
                 continue;
             }
 
-            *symbols = (uint8_t*)malloc(len * sizeof(uint8_t));
+            *symbols = (uint8_t*) malloc(len * sizeof(uint8_t));
             if (*symbols == NULL) {
                 return -1;
             }

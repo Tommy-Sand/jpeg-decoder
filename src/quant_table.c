@@ -16,7 +16,7 @@ const uint8_t zigzag[64] = {
     0x65, 0x56, 0x47, 0x57, 0x66, 0x75, 0x76, 0x67, 0x77};
 
 QuantTables* new_quant_tables() {
-    return (QuantTables*)malloc(sizeof(QuantTables));
+    return (QuantTables*) malloc(sizeof(QuantTables));
 }
 
 int32_t decode_quant_table(uint8_t** encoded_data, QuantTables* qts) {

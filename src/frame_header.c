@@ -5,7 +5,7 @@
 #include <stdlib.h>
 
 FrameHeader* new_frame_header() {
-    return (FrameHeader*)malloc(sizeof(FrameHeader));
+    return (FrameHeader*) malloc(sizeof(FrameHeader));
 }
 
 int32_t decode_frame_header(
@@ -35,7 +35,7 @@ int32_t decode_frame_header(
         //No components no image
         return -1;
     }
-    fh->cs = (Component*)malloc(fh->ncs * sizeof(Component));
+    fh->cs = (Component*) malloc(fh->ncs * sizeof(Component));
     uint8_t max_hsf = 0;
     uint8_t max_vsf = 0;
     for (uint8_t i = 0; i < fh->ncs; i++) {
@@ -55,10 +55,10 @@ int32_t decode_frame_header(
     for (uint8_t i = 0; i < fh->ncs; i++) {
         Component* c = fh->cs + i;
 
-        uint16_t x = ((uint16_t)ceil(fh->X * ((float)c->hsf / max_hsf)));
+        uint16_t x = ((uint16_t) ceil(fh->X * ((float) c->hsf / max_hsf)));
         //x += x % 8;
         c->x = x;
-        uint16_t y = (uint16_t)ceil(fh->Y * ((float)c->vsf / max_vsf));
+        uint16_t y = (uint16_t) ceil(fh->Y * ((float) c->vsf / max_vsf));
         //y += y % 8;
         c->y = y;
     }
@@ -122,7 +122,7 @@ void print_frame_header(FrameHeader* fh) {
         "Y: %d,\n"
         "ncs: %d,\n"
         "process: %s,\n",
-        (int)fh->precision,
+        (int) fh->precision,
         fh->X,
         fh->Y,
         fh->ncs,
