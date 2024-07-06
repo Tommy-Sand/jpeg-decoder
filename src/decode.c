@@ -98,7 +98,8 @@ int decode_jpeg_buffer(
     ScanHeader sh;
     Image *img_ = NULL;
     QuantTables *qts = NULL;
-    HuffTables *hts = NULL;
+    bool init_hts = false;
+    HuffTables hts;
     RestartInterval ri = 0;
 
     for (uint8_t *ptr = buf; ptr < buf + len;) {
@@ -138,44 +139,57 @@ int decode_jpeg_buffer(
                     break;
                 case 0xC1:  //SOF Extended Sequential DCT
                     printf("DEBUG: SOF Extended Sequential DCT\n");
+                    return -1;
                     break;
                 case 0xC2:  //SOF Progressive DCT
                     printf("DEBUG: SOF Progressive DCT\n");
+                    return -1;
                     break;
                 case 0xC3:  //SOF Lossless Sequential
                     printf("DEBUG: SOF Lossless DCT\n");
+                    return -1;
                     break;
                 case 0xC5:  //SOF Differential sequential DCT
                     printf("DEBUG: SOF Differential Sequential DCT\n");
+                    return -1;
                     break;
                 case 0xC6:  //SOF Differential progressive DCT
                     printf("DEBUG: SOF Differential Progressive DCT\n");
+                    return -1;
                     break;
                 case 0xC7:  //SOF Differential lossless (sequential)
                     printf("DEBUG: SOF Differential lossless DCT\n");
+                    return -1;
                     break;
 
                 case 0xC8:  //SOF Reserved for JPEG extensions
                     printf("DEBUG: SOF Reserved for JPEG extensions\n");
+                    return -1;
                     break;
                 case 0xC9:  //SOF Extended sequential DCT
                     printf("DEBUG: SOF Reserved for JPEG extensions\n");
+                    return -1;
                     break;
                 case 0xCA:  //SOF Progressive DCT
                     printf("DEBUG: SOF Progressive DCT\n");
+                    return -1;
                     break;
                 case 0xCB:  //SOF Lossless (sequential)
                     printf("SOF Lossless (sequential)\n");
+                    return -1;
                     break;
 
                 case 0xCD:  //SOF Differential sequential DCT
                     printf("DEBUG: SOF Differential sequential DCT\n");
+                    return -1;
                     break;
                 case 0xCE:  //SOF Differential progressive DCT
                     printf("DEBUG: SOF Differential progressive DCT\n");
+                    return -1;
                     break;
                 case 0xCF:  //SOF Differential lossless (sequential)
                     printf("DEBUG: SOF Differential lossless\n");
+                    return -1;
                     break;
 
                 case 0xC4:  //Define Huffman table(s)
@@ -183,14 +197,14 @@ int decode_jpeg_buffer(
                     if (fh_ == NULL) {
                         return -1;
                     }
-                    if (hts == NULL) {
-                        hts = new_huff_tables(fh_->process);
-                        if (hts == NULL) {
-                            printf("Cannot malloc hts");
+                    if (!init_hts) {
+                        if (new_huff_tables(fh_->process, &hts) == -1) {
+                            printf("DEBUG: new_huff_tables Failed\n");
                             return -1;
                         }
+                        init_hts = true;
                     }
-                    if (decode_huff_tables(&ptr, hts) != 0) {
+                    if (decode_huff_tables(&ptr, &hts) != 0) {
                         printf("DEBUG: Huff Table read failed\n");
                         return -1;
                     }
@@ -228,7 +242,7 @@ int decode_jpeg_buffer(
                     }
 
                     print_scan_header(&sh);
-                    if (decode_scan(&ptr, img_, fh_, &sh, hts, qts, ri) != 0) {
+                    if (decode_scan(&ptr, img_, fh_, &sh, &hts, qts, ri) != 0) {
                         printf("DEBUG: Decode Scan failed\n");
                         return -1;
                     }
@@ -325,8 +339,8 @@ int decode_jpeg_buffer(
     if (qts != NULL) {
         free_quant_tables(qts);
     }
-    if (hts != NULL) {
-        free_huff_tables(hts);
+    if (hts.nDCAC > 0) {
+        free_huff_tables(&hts);
     }
     return 0;
 }

@@ -3,38 +3,40 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-#include "frame_header.h"
-
-HuffTables *new_huff_tables(Encoding process) {
-    HuffTables *hts = (HuffTables *) malloc(sizeof(HuffTables));
-    if (process == BDCT) {
-        //Baseline DCT only allows for 2 hufftables for each AC and DC
-        hts->nDCAC = 2;
-        if ((hts->DCAC[0] = (HuffTable *) malloc(sizeof(HuffTable) * 2))
-            == NULL) {
-            free(hts);
-            return NULL;
-        }
-        if ((hts->DCAC[1] = (HuffTable *) malloc(sizeof(HuffTable) * 2))
-            == NULL) {
-            free(hts->DCAC[0]);
-            free(hts);
-            return NULL;
-        }
-        for (uint8_t i = 0; i < 2; i++) {
-            HuffTable *DC_or_AC = hts->DCAC[i];
-            for (uint8_t j = 0; j < hts->nDCAC; j++) {
-                HuffTable *ht = DC_or_AC + j;
-                for (uint8_t k = 0; k < 16; k++) {
-                    ht->symbols[k] = NULL;
-                }
-            }
-        }
-    } else {
-        free(hts);
-        return NULL;
+int new_huff_tables(Encoding process, HuffTables *hts) {
+    if (hts == NULL) {
+        return -1;
     }
-    return hts;
+
+    HuffTable *DC = hts->DCAC[0];
+    HuffTable *AC = hts->DCAC[1];
+    for (uint8_t i = 0; i < 4; i++) {
+        for (uint8_t j = 0; j < 16; j++) {
+            (DC + i)->len[j] = 0;
+            (AC + i)->len[j] = 0;
+
+            (DC + i)->min_codes[j] = 0;
+            (AC + i)->min_codes[j] = 0;
+
+            (DC + i)->max_codes[j] = 0;
+            (AC + i)->max_codes[j] = 0;
+
+            (DC + i)->symbols[j] = NULL;
+            (AC + i)->symbols[j] = NULL;
+        }
+    }
+
+    switch (process) {
+        case BDCT:
+            hts->nDCAC = 2;
+            break;
+        case ESDCTHC:
+            hts->nDCAC = 4;
+            break;
+        default:
+            return -1;
+    }
+    return 0;
 }
 
 int32_t decode_huff_tables(uint8_t **encoded_data, HuffTables *hts) {
@@ -72,7 +74,7 @@ int32_t decode_huff_tables(uint8_t **encoded_data, HuffTables *hts) {
             if (*symbols != NULL) {
                 free(symbols);
             }
-            //TODO Don't malloc for len == 0
+
             if (len == 0) {
                 code = code << 1;
                 ht->min_codes[i] = -1;  //0xFFFF
@@ -144,27 +146,16 @@ int32_t free_huff_tables(HuffTables *hts) {
     }
     HuffTable *DC = hts->DCAC[0];
     HuffTable *AC = hts->DCAC[1];
-    if (DC != NULL) {
-        if (DC->symbols != NULL) {
-            for (uint8_t i = 0; i < hts->nDCAC; i++) {
-                for (uint8_t j = 0; j < 16; j++) {
-                    free((DC + i)->symbols[j]);
-                }
+    for (uint8_t i = 0; i < 4; i++) {
+        for (uint8_t j = 0; j < 16; j++) {
+            if ((DC + i)->symbols[j] == NULL) {
+                free((DC + i)->symbols[j]);
+            }
+            if ((AC + i)->symbols[j] == NULL) {
+                free((AC + i)->symbols[j]);
             }
         }
-        free(DC);
     }
-    if (AC != NULL) {
-        if (AC->symbols != NULL) {
-            for (uint8_t i = 0; i < hts->nDCAC; i++) {
-                for (uint8_t j = 0; j < 16; j++) {
-                    free((AC + i)->symbols[j]);
-                }
-            }
-        }
-        free(AC);
-    }
-    free(hts);
     return 0;
 }
 
