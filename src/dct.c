@@ -16,7 +16,7 @@ void fast_2didct(int16_t du[64]) {
 
     complex double ret_dux[64] = {0};
     for (uint8_t i = 0; i < 8; i++) {
-        ifct(cdu + (i * 8), ret_dux + (i * 8));
+        fast_idct(cdu + (i * 8), ret_dux + (i * 8));
     }
 
     complex double in_duy[64] = {0};
@@ -33,7 +33,7 @@ void fast_2didct(int16_t du[64]) {
 
     complex double ret_duy[64] = {0};
     for (uint8_t k = 0; k < 8; k++) {
-        ifct(in_duy + (k * 8), ret_duy + (k * 8));
+        fast_idct(in_duy + (k * 8), ret_duy + (k * 8));
     }
 
     // transpose
@@ -93,7 +93,7 @@ k]);
 }
 */
 
-void ifct(complex double in[8], complex double out[8]) {
+void fast_idct(complex double in[8], complex double out[8]) {
     complex double pass1[8] = {
         in[0],
         0.5 * (0.9807853 + 0.1950903 * I) * (in[1] - I * in[8 - 1]),
