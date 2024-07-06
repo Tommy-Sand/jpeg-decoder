@@ -53,18 +53,18 @@ void free_img(Image *img) {
 int decode_jpeg_buffer(
     uint8_t *buf,
     size_t len,
-    FrameHeader **fh_,
-    Image **img_
+    FrameHeader **fh,
+    Image **img
 ) {
-    FrameHeader *fh = new_frame_header();
+    FrameHeader *fh_ = new_frame_header();
     if (fh == NULL) {
         printf("Cannot malloc fh");
         return -1;
     }
 
-    fh->process = BDCT;
+    fh_->process = BDCT;
     ScanHeader sh;
-    Image *img = NULL;
+    Image *img_ = NULL;
     QuantTables *qts = NULL;
     HuffTables *hts = NULL;
     RestartInterval ri = 0;
@@ -83,22 +83,22 @@ int decode_jpeg_buffer(
 
                 case 0xC0:
                     printf("DEBUG: SOF Baseline DCT\n");
-                    if (fh == NULL) {
+                    if (fh_ == NULL) {
                         //malloc fail check in decode_frame_header
-                        fh = new_frame_header();
-                        if (fh == NULL) {
-                            printf("Cannot malloc fh");
+                        fh_ = new_frame_header();
+                        if (fh_ == NULL) {
+                            printf("Cannot malloc fh_");
                             return -1;
                         }
                     }
-                    if (decode_frame_header(BDCT, &ptr, fh) == -1) {
+                    if (decode_frame_header(BDCT, &ptr, fh_) == -1) {
                         printf("DEBUG: frame header read failed\n");
                         return -1;
                     }
-                    print_frame_header(fh);
-                    if (img == NULL) {
-                        img = allocate_img(fh);
-                        if (!img) {
+                    print_frame_header(fh_);
+                    if (img_ == NULL) {
+                        img_ = allocate_img(fh_);
+                        if (!img_) {
                             printf("Cannot allocate image");
                             return -1;
                         }
@@ -148,11 +148,11 @@ int decode_jpeg_buffer(
 
                 case 0xC4:  //Define Huffman table(s)
                     printf("DEBUG: Define Huffman Table(s)\n");
-                    if (fh == NULL) {
+                    if (fh_ == NULL) {
                         return -1;
                     }
                     if (hts == NULL) {
-                        hts = new_huff_tables(fh->process);
+                        hts = new_huff_tables(fh_->process);
                         if (hts == NULL) {
                             printf("Cannot malloc hts");
                             return -1;
@@ -196,7 +196,7 @@ int decode_jpeg_buffer(
                     }
 
                     print_scan_header(&sh);
-                    if (decode_scan(&ptr, img, fh, &sh, hts, qts, ri) != 0) {
+                    if (decode_scan(&ptr, img_, fh_, &sh, hts, qts, ri) != 0) {
                         printf("DEBUG: Decode Scan failed\n");
                         return -1;
                     }
@@ -216,10 +216,10 @@ int decode_jpeg_buffer(
                     break;
                 case 0xDC:  //Define number of lines
                     printf("DEBUG: Defined Number of lines\n");
-                    if (fh == NULL) {
+                    if (fh_ == NULL) {
                         printf("DEBUG: fh is null when reading DNL");
                     }
-                    if (decode_number_of_lines(&ptr, fh) != 0) {
+                    if (decode_number_of_lines(&ptr, fh_) != 0) {
                         printf("DEBUG: Number of Lines read fialed\n");
                     }
                     break;
@@ -288,8 +288,8 @@ int decode_jpeg_buffer(
         }
     }
 
-    *fh_ = fh;
-    *img_ = img;
+    *fh = fh_;
+    *img = img_;
     if (qts != NULL) {
         free_quant_tables(qts);
     }
