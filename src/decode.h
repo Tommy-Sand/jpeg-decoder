@@ -1,6 +1,7 @@
 #pragma once
 #include <complex.h>
 #include <stdbool.h>
+#include <stddef.h>
 #include <stdint.h>
 
 #include "frame_header.h"
@@ -53,3 +54,5 @@ int next_byte_restart_marker(uint8_t** ptr, uint8_t* offset);
 int next_byte(uint8_t** ptr, uint8_t* offset);
 uint8_t check_marker(uint8_t** ptr);
 void restart_marker(int16_t* pred, uint8_t len);
+int decode_jpeg_buffer(uint8_t* buf, size_t len, FrameHeader** fh, Image** img);
+int read_app_segment(uint8_t** encoded_data);
