@@ -17,25 +17,25 @@
 #include "restart_interval.h"
 #include "scan_header.h"
 
-int display_image(int width, int height, SDL_Surface* image);
-int read_app_segment(uint8_t** encoded_data);
-int mmap_file(const char* filename, uint8_t** data);
+int display_image(int width, int height, SDL_Surface *image);
+int read_app_segment(uint8_t **encoded_data);
+int mmap_file(const char *filename, uint8_t **data);
 
-int main(int argc, char* argv[]) {
+int main(int argc, char *argv[]) {
     if (argc < 2) {
         fprintf(stderr, "Need file path\n");
         return -1;
     }
 
-    uint8_t* buf;
+    uint8_t *buf;
     size_t size = mmap_file(argv[1], &buf);
     if (size == -1) {
         return -1;
     }
     printf("length: %lu\n", size);
 
-    Image* img = NULL;
-    FrameHeader* fh = NULL;
+    Image *img = NULL;
+    FrameHeader *fh = NULL;
     decode_jpeg_buffer(buf, size, &fh, &img);
 
     if (!fh) {
@@ -49,7 +49,7 @@ int main(int argc, char* argv[]) {
         return -1;
     }
 
-    SDL_Surface* img_surface = SDL_CreateRGBSurfaceWithFormat(
+    SDL_Surface *img_surface = SDL_CreateRGBSurfaceWithFormat(
         0,
         width,
         height,
@@ -63,7 +63,7 @@ int main(int argc, char* argv[]) {
     uint16_t pitch = img_surface->pitch;
     width = img_surface->w;
     height = img_surface->h;
-    uint8_t* pixels = img_surface->pixels;
+    uint8_t *pixels = img_surface->pixels;
 
     for (uint32_t i = 0; i < height * pitch; i++) {
         *(pixels + i) = 0;
@@ -149,15 +149,15 @@ int main(int argc, char* argv[]) {
     return 0;
 }
 
-int display_image(int width, int height, SDL_Surface* image) {
-    SDL_Window* window =
+int display_image(int width, int height, SDL_Surface *image) {
+    SDL_Window *window =
         SDL_CreateWindow("Test window", 100, 100, width, height, 0);
     if (window == NULL) {
         printf("SDL create window failed\n");
         return -1;
     }
 
-    SDL_Surface* surface = SDL_GetWindowSurface(window);
+    SDL_Surface *surface = SDL_GetWindowSurface(window);
     if (SDL_BlitSurface(image, NULL, surface, NULL)) {
         printf("failure");
         return -1;
@@ -176,7 +176,7 @@ int display_image(int width, int height, SDL_Surface* image) {
     return 0;
 }
 
-int mmap_file(const char* filename, uint8_t** data) {
+int mmap_file(const char *filename, uint8_t **data) {
     struct stat st;
     if (stat(filename, &st) == -1) {
         fprintf(stderr, "Could not get size of file, %s", strerror(errno));
@@ -190,8 +190,8 @@ int mmap_file(const char* filename, uint8_t** data) {
         return -1;
     }
 
-    void* mmap_ret = mmap(NULL, len, PROT_READ, MAP_SHARED, fd, 0);
-    if (mmap_ret == (void*) -1) {
+    void *mmap_ret = mmap(NULL, len, PROT_READ, MAP_SHARED, fd, 0);
+    if (mmap_ret == (void *) -1) {
         fprintf(stderr, "Could not get contents of file, %s", strerror(errno));
         return -1;
     }

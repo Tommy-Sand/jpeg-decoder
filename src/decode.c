@@ -9,25 +9,25 @@
 
 #define CLAMP(in) ((in > 255.0) ? 255 : ((in < 0.0) ? 0.0 : in))
 
-Image* allocate_img(FrameHeader* fh) {
-    Image* img = calloc(1, sizeof(Image));
+Image *allocate_img(FrameHeader *fh) {
+    Image *img = calloc(1, sizeof(Image));
     if (!img) {
         return NULL;
     }
-    img->buf = (uint8_t**) calloc(fh->ncs, sizeof(uint8_t*));
+    img->buf = (uint8_t **) calloc(fh->ncs, sizeof(uint8_t *));
     if (!img->buf) {
         free(img);
         return NULL;
     }
     for (uint8_t i = 0; i < fh->ncs; i++) {
-        Component* c = fh->cs + i;
+        Component *c = fh->cs + i;
         uint16_t x_to_mcu = c->x
             + ((c->x % (8 * c->hsf)) ? (8 * c->hsf - (c->x % (8 * c->hsf))) : 0
             );
         uint16_t y_to_mcu = c->y
             + ((c->y % (8 * c->vsf)) ? (8 * c->vsf - (c->y % (8 * c->vsf))) : 0
             );
-        img->buf[i] = (uint8_t*) calloc(x_to_mcu * y_to_mcu, sizeof(uint8_t));
+        img->buf[i] = (uint8_t *) calloc(x_to_mcu * y_to_mcu, sizeof(uint8_t));
         if (!(img->buf[i])) {
             for (uint8_t j = 0; j < i; j++) {
                 free(img->buf[j]);
@@ -42,7 +42,7 @@ Image* allocate_img(FrameHeader* fh) {
     return img;
 }
 
-void free_img(Image* img) {
+void free_img(Image *img) {
     for (uint8_t i = 0; i < img->n_du; i++) {
         free(img->buf[i]);
     }
@@ -51,12 +51,12 @@ void free_img(Image* img) {
 }
 
 int decode_jpeg_buffer(
-    uint8_t* buf,
+    uint8_t *buf,
     size_t len,
-    FrameHeader** fh_,
-    Image** img_
+    FrameHeader **fh_,
+    Image **img_
 ) {
-    FrameHeader* fh = new_frame_header();
+    FrameHeader *fh = new_frame_header();
     if (fh == NULL) {
         printf("Cannot malloc fh");
         return -1;
@@ -64,12 +64,12 @@ int decode_jpeg_buffer(
 
     fh->process = BDCT;
     ScanHeader sh;
-    Image* img = NULL;
-    QuantTables* qts = NULL;
-    HuffTables* hts = NULL;
+    Image *img = NULL;
+    QuantTables *qts = NULL;
+    HuffTables *hts = NULL;
     RestartInterval ri = 0;
 
-    for (uint8_t* ptr = buf; ptr < buf + len;) {
+    for (uint8_t *ptr = buf; ptr < buf + len;) {
         bool EOI = false;
         if (*(ptr++) == 0xFF) {
             switch (*(ptr++)) {
@@ -299,8 +299,8 @@ int decode_jpeg_buffer(
     return 0;
 }
 
-int read_app_segment(uint8_t** encoded_data) {
-    uint8_t* ptr = *encoded_data;
+int read_app_segment(uint8_t **encoded_data) {
+    uint8_t *ptr = *encoded_data;
 
     uint16_t len = (*(ptr++)) << 8;
     len += *(ptr++);
@@ -309,9 +309,9 @@ int read_app_segment(uint8_t** encoded_data) {
     return 0;
 }
 
-int write_mcu(Image* img, int16_t (**mcu)[64], FrameHeader* fh) {
+int write_mcu(Image *img, int16_t (**mcu)[64], FrameHeader *fh) {
     for (uint8_t i = 0; i < fh->ncs; i++) {
-        Component* c = fh->cs + i;
+        Component *c = fh->cs + i;
         for (uint8_t j = 0; j < c->vsf; j++) {
             for (uint8_t k = 0; k < c->hsf; k++) {
                 uint16_t x_to_mcu = c->x
@@ -325,7 +325,7 @@ int write_mcu(Image* img, int16_t (**mcu)[64], FrameHeader* fh) {
                      * c->vsf * 8)
                     + (j * 8);
 
-                int16_t* du = *((*(mcu + i)) + ((j * c->hsf) + k));
+                int16_t *du = *((*(mcu + i)) + ((j * c->hsf) + k));
 
                 write_data_unit(img, i, x_to_mcu, du, x, y);
             }
@@ -336,10 +336,10 @@ int write_mcu(Image* img, int16_t (**mcu)[64], FrameHeader* fh) {
 }
 
 int write_data_unit(
-    Image* img,
+    Image *img,
     uint8_t comp,
     uint16_t x_to_mcu,
-    int16_t* du,
+    int16_t *du,
     uint32_t x,
     uint32_t y
 ) {
@@ -353,12 +353,12 @@ int write_data_unit(
 }
 
 int decode_scan(
-    uint8_t** encoded_data,
-    Image* img,
-    FrameHeader* fh,
-    ScanHeader* sh,
-    HuffTables* hts,
-    QuantTables* qts,
+    uint8_t **encoded_data,
+    Image *img,
+    FrameHeader *fh,
+    ScanHeader *sh,
+    HuffTables *hts,
+    QuantTables *qts,
     RestartInterval ri
 ) {
     /**
@@ -373,14 +373,14 @@ int decode_scan(
     }
 
     uint8_t EOI = 0;
-    int16_t(**mcu)[] = (int16_t(**)[]) calloc(sh->nics, sizeof(int16_t**));
+    int16_t(**mcu)[] = (int16_t(**)[]) calloc(sh->nics, sizeof(int16_t **));
     if (!mcu) {
         return -1;
     }
     for (uint8_t i = 0; i < sh->nics; i++) {
         ImageComponent ic = sh->ics[i];
 
-        Component* c = NULL;
+        Component *c = NULL;
         for (uint8_t j = 0; j < fh->ncs; j++) {
             c = (fh->cs) + j;
             if (c->id == ic.sc) {
@@ -413,7 +413,7 @@ int decode_scan(
             int16_t(*dus)[64] = *(mcu + i);
             ImageComponent ic = sh->ics[i];
 
-            Component* c = NULL;
+            Component *c = NULL;
             for (uint8_t j = 0; j < fh->ncs; j++) {
                 c = (fh->cs) + j;
                 if (c->id == ic.sc) {
@@ -425,10 +425,10 @@ int decode_scan(
             }
             HuffTable dc = hts->DCAC[0][ic.dc];
             HuffTable ac = hts->DCAC[1][ic.ac];
-            QuantTable* qt = qts->tables + c->qtid;
+            QuantTable *qt = qts->tables + c->qtid;
             for (uint8_t j = 0; j < c->vsf; j++) {
                 for (uint8_t k = 0; k < c->hsf; k++) {
-                    int16_t* du = *(dus + ((j * c->hsf) + k));
+                    int16_t *du = *(dus + ((j * c->hsf) + k));
                     memset(du, 0, 64 * sizeof(int16_t));
                     if (!du) {
                         return -1;
@@ -467,14 +467,14 @@ int decode_scan(
 }
 
 int decode_data_unit(
-    uint8_t** encoded_data,
-    uint8_t* offset,
-    int16_t* du,
+    uint8_t **encoded_data,
+    uint8_t *offset,
+    int16_t *du,
     HuffTable dc_huff,
     HuffTable ac_huff,
-    int16_t* pred
+    int16_t *pred
 ) {
-    uint8_t* ptr = *encoded_data;
+    uint8_t *ptr = *encoded_data;
 
     if (*offset >= 8) {
         next_byte(&ptr, offset);
@@ -785,7 +785,7 @@ void ifft(complex double du[4], complex double ret_du[4]) {
  *      2 byte stuffing
  */
 // TODO Handle possibility of multiple stuffed bytes in a row
-int next_byte(uint8_t** ptr, uint8_t* offset) {
+int next_byte(uint8_t **ptr, uint8_t *offset) {
     uint8_t byte = **ptr;
     if (byte == 0xFF) {
         uint8_t n_byte = *(*ptr + 1);
@@ -826,7 +826,7 @@ int next_byte(uint8_t** ptr, uint8_t* offset) {
  *      2 byte stuffing
  */
 // TODO Handle possibility of multiple stuffed bytes in a row
-int next_byte_restart_marker(uint8_t** ptr, uint8_t* offset) {
+int next_byte_restart_marker(uint8_t **ptr, uint8_t *offset) {
     uint8_t byte = **ptr;
     if (byte == 0xFF) {
         uint8_t n_byte = *(*ptr + 1);
@@ -866,7 +866,7 @@ int next_byte_restart_marker(uint8_t** ptr, uint8_t* offset) {
 	1 is restart marker
 	2 end of image
 */
-uint8_t check_marker(uint8_t** ptr) {
+uint8_t check_marker(uint8_t **ptr) {
     uint8_t byte = **ptr;
     uint8_t n_byte = *(*ptr + 1);
     if (byte == 0xFF && n_byte == 0xD9) {
@@ -894,7 +894,7 @@ uint8_t check_marker(uint8_t** ptr) {
     return 0;
 }
 
-void restart_marker(int16_t* pred, uint8_t len) {
+void restart_marker(int16_t *pred, uint8_t len) {
     for (uint8_t i = 0; i < len; i++) {
         *(pred + i) = 0;
     }

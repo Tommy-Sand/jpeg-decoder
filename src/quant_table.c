@@ -15,15 +15,15 @@ const uint8_t zigzag[64] = {
     0x63, 0x54, 0x45, 0x36, 0x27, 0x37, 0x46, 0x55, 0x64, 0x73, 0x74,
     0x65, 0x56, 0x47, 0x57, 0x66, 0x75, 0x76, 0x67, 0x77};
 
-QuantTables* new_quant_tables() {
-    return (QuantTables*) malloc(sizeof(QuantTables));
+QuantTables *new_quant_tables() {
+    return (QuantTables *) malloc(sizeof(QuantTables));
 }
 
-int32_t decode_quant_table(uint8_t** encoded_data, QuantTables* qts) {
+int32_t decode_quant_table(uint8_t **encoded_data, QuantTables *qts) {
     if (encoded_data == NULL || *encoded_data == NULL || qts == NULL) {
         return -1;
     }
-    uint8_t* ptr = *encoded_data;
+    uint8_t *ptr = *encoded_data;
 
     uint16_t len = (*(ptr++)) << 8;
     len += *(ptr++);
@@ -32,14 +32,14 @@ int32_t decode_quant_table(uint8_t** encoded_data, QuantTables* qts) {
         return -1;
     }
 
-    uint8_t* end = ptr + len - 2;  //Subtract 2 for length already read
+    uint8_t *end = ptr + len - 2;  //Subtract 2 for length already read
     while (ptr < end) {
         uint8_t precision = ((*ptr) >> 4) & 0xF;
         uint8_t id = (*(ptr++)) & 0xF;
         if (id > 3) {
             return -1;
         }
-        QuantTable* qt = qts->tables + id;
+        QuantTable *qt = qts->tables + id;
         qt->precision = precision;
 
         for (uint8_t i = 0; i < 64; i++) {
@@ -68,7 +68,7 @@ int32_t decode_quant_table(uint8_t** encoded_data, QuantTables* qts) {
     return 0;
 }
 
-int32_t dequant_data_unit(QuantTable* qt, int16_t* du) {
+int32_t dequant_data_unit(QuantTable *qt, int16_t *du) {
     int16_t du_copy[64];
     memcpy(du_copy, du, sizeof(int16_t) * 64);
 
@@ -92,7 +92,7 @@ int32_t dequant_data_unit(QuantTable* qt, int16_t* du) {
     return 0;
 }
 
-int32_t free_quant_tables(QuantTables* qts) {
+int32_t free_quant_tables(QuantTables *qts) {
     if (qts == NULL) {
         return -1;
     }

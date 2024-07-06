@@ -16,8 +16,8 @@ typedef struct {
     uint8_t al;
 } ScanHeader;
 
-int32_t decode_scan_header(uint8_t** encoded_data, ScanHeader* sh);
+int32_t decode_scan_header(uint8_t **encoded_data, ScanHeader *sh);
 
-void print_scan_header(ScanHeader* sh);
+void print_scan_header(ScanHeader *sh);
 
-void print_image_component(ImageComponent* ics, int len);
+void print_image_component(ImageComponent *ics, int len);

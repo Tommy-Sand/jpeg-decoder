@@ -36,23 +36,23 @@ typedef struct {
     uint16_t X;
     uint16_t Y;
     uint8_t ncs;  //number of components
-    Component* cs;  //components
+    Component *cs;  //components
 } FrameHeader;
 
-FrameHeader* new_frame_header();
+FrameHeader *new_frame_header();
 
 int32_t decode_frame_header(
     Encoding encoding_process,
-    uint8_t** encoded_data,
-    FrameHeader* fh
+    uint8_t **encoded_data,
+    FrameHeader *fh
 );
 
-int32_t decode_number_of_lines(uint8_t** encoded_data, FrameHeader* fh);
+int32_t decode_number_of_lines(uint8_t **encoded_data, FrameHeader *fh);
 
-int32_t free_frame_header(FrameHeader* fh);
+int32_t free_frame_header(FrameHeader *fh);
 
-void print_frame_header(FrameHeader* fh);
+void print_frame_header(FrameHeader *fh);
 
-void print_component(Component* comp, int len);
+void print_component(Component *comp, int len);
 
-char* encoding_str(Encoding process);
+char *encoding_str(Encoding process);

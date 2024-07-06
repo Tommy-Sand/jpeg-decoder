@@ -4,19 +4,19 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-FrameHeader* new_frame_header() {
-    return (FrameHeader*) malloc(sizeof(FrameHeader));
+FrameHeader *new_frame_header() {
+    return (FrameHeader *) malloc(sizeof(FrameHeader));
 }
 
 int32_t decode_frame_header(
     Encoding encoding_process,
-    uint8_t** encoded_data,
-    FrameHeader* fh
+    uint8_t **encoded_data,
+    FrameHeader *fh
 ) {
     if (encoded_data == NULL || *encoded_data == NULL || fh == NULL) {
         return -1;
     }
-    uint8_t* ptr = *encoded_data;
+    uint8_t *ptr = *encoded_data;
 
     uint16_t len = (*(ptr++)) << 8;
     len += *(ptr++);
@@ -35,11 +35,11 @@ int32_t decode_frame_header(
         //No components no image
         return -1;
     }
-    fh->cs = (Component*) malloc(fh->ncs * sizeof(Component));
+    fh->cs = (Component *) malloc(fh->ncs * sizeof(Component));
     uint8_t max_hsf = 0;
     uint8_t max_vsf = 0;
     for (uint8_t i = 0; i < fh->ncs; i++) {
-        Component* c = fh->cs + i;
+        Component *c = fh->cs + i;
 
         c->id = *(ptr++);
         c->hsf = (*ptr) >> 4;
@@ -53,7 +53,7 @@ int32_t decode_frame_header(
         c->qtid = *(ptr++);
     }
     for (uint8_t i = 0; i < fh->ncs; i++) {
-        Component* c = fh->cs + i;
+        Component *c = fh->cs + i;
 
         uint16_t x = ((uint16_t) ceil(fh->X * ((float) c->hsf / max_hsf)));
         //x += x % 8;
@@ -82,11 +82,11 @@ int32_t decode_frame_header(
     return 0;
 }
 
-int32_t decode_number_of_lines(uint8_t** encoded_data, FrameHeader* fh) {
+int32_t decode_number_of_lines(uint8_t **encoded_data, FrameHeader *fh) {
     if (fh == NULL) {
         return -1;
     }
-    uint8_t* ptr = *encoded_data;
+    uint8_t *ptr = *encoded_data;
     uint16_t len = (*(ptr++)) << 8;
     len += (*(ptr++));
     if (len != 4) {
@@ -99,7 +99,7 @@ int32_t decode_number_of_lines(uint8_t** encoded_data, FrameHeader* fh) {
     return 0;
 }
 
-int32_t free_frame_header(FrameHeader* fh) {
+int32_t free_frame_header(FrameHeader *fh) {
     if (fh == NULL) {
         return -1;
     }
@@ -110,7 +110,7 @@ int32_t free_frame_header(FrameHeader* fh) {
     return 0;
 }
 
-void print_frame_header(FrameHeader* fh) {
+void print_frame_header(FrameHeader *fh) {
     if (!fh) {
         return;
     }
@@ -132,13 +132,13 @@ void print_frame_header(FrameHeader* fh) {
     print_component(fh->cs, fh->ncs);
 }
 
-void print_component(Component* comp, int len) {
+void print_component(Component *comp, int len) {
     if (!comp) {
         return;
     }
 
     for (int i = 0; i < len; i++) {
-        Component* c = comp + i;
+        Component *c = comp + i;
         printf(
             "    Component: %d,\n"
             "        Horizontal Sampling Factor: %d,\n"
@@ -156,7 +156,7 @@ void print_component(Component* comp, int len) {
     }
 }
 
-char* encoding_str(Encoding process) {
+char *encoding_str(Encoding process) {
     switch (process) {
         case BDCT:
             return "Baseline DCT";

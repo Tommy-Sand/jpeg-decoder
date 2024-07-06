@@ -10,12 +10,12 @@ typedef struct {
     QuantTable tables[4];
 } QuantTables;
 
-QuantTables* new_quant_tables();
+QuantTables *new_quant_tables();
 
-int32_t decode_quant_table(uint8_t** encoded_data, QuantTables* qts);
+int32_t decode_quant_table(uint8_t **encoded_data, QuantTables *qts);
 
-int32_t dequant_data_unit(QuantTable* qt, int16_t* du);
+int32_t dequant_data_unit(QuantTable *qt, int16_t *du);
 
-int32_t free_quant_tables(QuantTables* qts);
+int32_t free_quant_tables(QuantTables *qts);
 
-int32_t free_quant_table(QuantTable* qt);
+int32_t free_quant_table(QuantTable *qt);

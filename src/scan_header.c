@@ -3,11 +3,11 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-int32_t decode_scan_header(uint8_t** encoded_data, ScanHeader* sh) {
+int32_t decode_scan_header(uint8_t **encoded_data, ScanHeader *sh) {
     if (encoded_data == NULL || *encoded_data == NULL || sh == NULL) {
         return -1;
     }
-    uint8_t* ptr = *encoded_data;
+    uint8_t *ptr = *encoded_data;
 
     uint16_t len = (*(ptr++)) << 8;
     len += *(ptr++);
@@ -48,7 +48,7 @@ int32_t decode_scan_header(uint8_t** encoded_data, ScanHeader* sh) {
     return 0;
 }
 
-void print_scan_header(ScanHeader* sh) {
+void print_scan_header(ScanHeader *sh) {
     if (sh == NULL) {
         return;
     }
@@ -68,13 +68,13 @@ void print_scan_header(ScanHeader* sh) {
     print_image_component(sh->ics, sh->nics);
 }
 
-void print_image_component(ImageComponent* ics, int len) {
+void print_image_component(ImageComponent *ics, int len) {
     if (!ics) {
         return;
     }
 
     for (int i = 0; i < len; i++) {
-        ImageComponent* ic = ics + i;
+        ImageComponent *ic = ics + i;
         printf(
             "    Image Component: %d\n"
             "        Scan Selector Component: %d\n"
