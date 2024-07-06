@@ -28,5 +28,8 @@ restart_interval.o:
 decode.o: 
 	gcc -g -c -Wall -std=c17 -o $(BUILD_DIR)decode.o $(SRC_DIR)decode.c
 
+dct.o:
+	gcc -g -c -Wall -std=c17 -o $(BUILD_DIR)dct.o $(SRC_DIR)dct.c
+
 clean:
 	rm $(BUILD_DIR)*
