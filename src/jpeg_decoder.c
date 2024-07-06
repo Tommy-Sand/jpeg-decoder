@@ -414,40 +414,30 @@ int display_image(int width, int height, SDL_Surface* image) {
     return 0;
 }
 
-int read_app_segment(uint8_t** encoded_data) {
-    uint8_t* ptr = *encoded_data;
-
-    uint16_t len = (*(ptr++)) << 8;
-    len += *(ptr++);
-
-    *encoded_data += len;
-    return 0;
-}
-
-int mmap_file(const char *filename, uint8_t **data) {
+int mmap_file(const char* filename, uint8_t** data) {
     struct stat st;
     if (stat(filename, &st) == -1) {
-		fprintf(stderr, "Could not get size of file, %s", strerror(errno));
-		return -1;
-	}
+        fprintf(stderr, "Could not get size of file, %s", strerror(errno));
+        return -1;
+    }
     off_t len = st.st_size;
 
-	int fd = open(filename, O_RDONLY);
-	if (fd == -1) {
-		fprintf(stderr, "Could not open file, %s", strerror(errno));
-		return -1;
-	}
+    int fd = open(filename, O_RDONLY);
+    if (fd == -1) {
+        fprintf(stderr, "Could not open file, %s", strerror(errno));
+        return -1;
+    }
 
-	void *mmap_ret = mmap(NULL, len, PROT_READ, MAP_SHARED, fd, 0);
-	if (mmap_ret == (void *) -1) {
-		fprintf(stderr, "Could not get contents of file, %s", strerror(errno));
-		return -1;
-	}
-	*data = mmap_ret;
-	
-	if (close(fd) == -1) {
-		fprintf(stderr, "Could not close file descriptor, %s", strerror(errno));
-		return -1;
-	};
-	return len;
+    void* mmap_ret = mmap(NULL, len, PROT_READ, MAP_SHARED, fd, 0);
+    if (mmap_ret == (void*)-1) {
+        fprintf(stderr, "Could not get contents of file, %s", strerror(errno));
+        return -1;
+    }
+    *data = mmap_ret;
+
+    if (close(fd) == -1) {
+        fprintf(stderr, "Could not close file descriptor, %s", strerror(errno));
+        return -1;
+    };
+    return len;
 }
