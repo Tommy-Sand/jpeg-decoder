@@ -21,6 +21,8 @@ typedef enum {
     DLSAC = 15,  //Differential lossless (sequential)
 } Encoding;
 
+char *encoding_str(Encoding process);
+
 typedef struct {
     uint8_t id;
     uint8_t hsf;  //Horizontal Sampling Factor
@@ -39,8 +41,6 @@ typedef struct {
     Component *cs;  //components
 } FrameHeader;
 
-FrameHeader *new_frame_header();
-
 int32_t decode_frame_header(
     Encoding encoding_process,
     uint8_t **encoded_data,
@@ -54,5 +54,3 @@ int32_t free_frame_header(FrameHeader *fh);
 void print_frame_header(FrameHeader *fh);
 
 void print_component(Component *comp, int len);
-
-char *encoding_str(Encoding process);

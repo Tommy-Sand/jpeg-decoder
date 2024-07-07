@@ -35,14 +35,14 @@ int main(int argc, char *argv[]) {
     printf("length: %lu\n", size);
 
     Image *img = NULL;
-    FrameHeader *fh = NULL;
-    decode_jpeg_buffer(buf, size, &fh, &img);
-
-    if (!fh) {
+    FrameHeader fh;
+    if (decode_jpeg_buffer(buf, size, &fh, &img) != 0) {
+        printf("DEBUG: Decoding jpeg buffer failed\n");
         return -1;
-    }
-    uint16_t width = fh->X;
-    uint16_t height = fh->Y;
+    };
+
+    uint16_t width = fh.X;
+    uint16_t height = fh.Y;
 
     if (SDL_Init(SDL_INIT_TIMER)) {
         printf("SDL init failed\n");
@@ -71,8 +71,8 @@ int main(int argc, char *argv[]) {
 
     uint8_t max_hsf = 0;
     uint8_t max_vsf = 0;
-    for (uint8_t i = 0; i < fh->ncs; i++) {
-        Component c = *(fh->cs + i);
+    for (uint8_t i = 0; i < fh.ncs; i++) {
+        Component c = *(fh.cs + i);
         if (c.hsf > max_hsf) {
             max_hsf = c.hsf;
         }
@@ -81,27 +81,27 @@ int main(int argc, char *argv[]) {
         }
     }
 
-    if (fh->ncs == 1) {
+    if (fh.ncs == 1) {
         for (uint32_t j = 0; j < width * height; j++) {
             pixels[j * 3] = *((*img->buf) + j);
             pixels[(j * 3) + 1] = *((*img->buf) + j);
             pixels[(j * 3) + 2] = *((*img->buf) + j);
         }
     }
-    if (fh->ncs == 3) {
-        Component c = *fh->cs;
+    if (fh.ncs == 3) {
+        Component c = *fh.cs;
         float hratio0 = (float) c.hsf / max_hsf;
         float vratio0 = (float) c.vsf / max_vsf;
         uint16_t x_to_mcu0 =
             c.x + ((c.x % (8 * c.hsf)) ? (8 * c.hsf - (c.x % (8 * c.hsf))) : 0);
 
-        c = *(fh->cs + 1);
+        c = *(fh.cs + 1);
         float hratio1 = (float) c.hsf / max_hsf;
         float vratio1 = (float) c.vsf / max_vsf;
         uint16_t x_to_mcu1 =
             c.x + ((c.x % (8 * c.hsf)) ? (8 * c.hsf - (c.x % (8 * c.hsf))) : 0);
 
-        c = *(fh->cs + 2);
+        c = *(fh.cs + 2);
         float hratio2 = (float) c.hsf / max_hsf;
         float vratio2 = (float) c.vsf / max_vsf;
         uint16_t x_to_mcu2 =
@@ -143,9 +143,7 @@ int main(int argc, char *argv[]) {
     SDL_Quit();
 
     munmap(buf, size);
-    if (fh != NULL) {
-        free_frame_header(fh);
-    }
+    free_frame_header(&fh);
     return 0;
 }
 

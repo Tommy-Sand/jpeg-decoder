@@ -4,10 +4,6 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-FrameHeader *new_frame_header() {
-    return (FrameHeader *) malloc(sizeof(FrameHeader));
-}
-
 int32_t decode_frame_header(
     Encoding encoding_process,
     uint8_t **encoded_data,
@@ -100,13 +96,9 @@ int32_t decode_number_of_lines(uint8_t **encoded_data, FrameHeader *fh) {
 }
 
 int32_t free_frame_header(FrameHeader *fh) {
-    if (fh == NULL) {
-        return -1;
-    }
     if (fh->cs != NULL) {
         free(fh->cs);
     }
-    free(fh);
     return 0;
 }
 

@@ -17,4 +17,4 @@ typedef struct {
 
 Image *allocate_img(FrameHeader *fh);
 void free_img(Image *img);
-int decode_jpeg_buffer(uint8_t *buf, size_t len, FrameHeader **fh, Image **img);
+int decode_jpeg_buffer(uint8_t *buf, size_t len, FrameHeader *fh, Image **img);
