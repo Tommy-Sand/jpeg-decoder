@@ -124,7 +124,18 @@ int decode_jpeg_buffer(uint8_t *buf, size_t len, FrameHeader *fh, Image **img) {
                     break;
                 case 0xC1:  //SOF Extended Sequential DCT
                     printf("DEBUG: SOF Extended Sequential DCT\n");
-                    return -1;
+                    if (decode_frame_header(ESDCTHC, &ptr, fh) == -1) {
+                        printf("DEBUG: frame header read failed\n");
+                        return -1;
+                    }
+                    print_frame_header(fh);
+                    if (img_ == NULL) {
+                        img_ = allocate_img(fh);
+                        if (!img_) {
+                            printf("Cannot allocate image");
+                            return -1;
+                        }
+                    }
                     break;
                 case 0xC2:  //SOF Progressive DCT
                     printf("DEBUG: SOF Progressive DCT\n");
@@ -152,7 +163,7 @@ int decode_jpeg_buffer(uint8_t *buf, size_t len, FrameHeader *fh, Image **img) {
                     return -1;
                     break;
                 case 0xC9:  //SOF Extended sequential DCT
-                    printf("DEBUG: SOF Reserved for JPEG extensions\n");
+                    printf("DEBUG: SOF Extended sequential DCT\n");
                     return -1;
                     break;
                 case 0xCA:  //SOF Progressive DCT
