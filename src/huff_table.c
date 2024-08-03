@@ -39,6 +39,75 @@ int new_huff_tables(Encoding process, HuffTables *hts) {
     return 0;
 }
 
+//The length is for how many bytes needed to write
+//the huffman table to the compressed data formats
+//including the length
+int32_t encoded_huff_tables_len(HuffTables *hts) {
+    if (hts == NULL || hts->nDCAC > 4) {
+        return -1;
+    }
+
+    int32_t len = 2;
+    for (uint8_t i = 0; i < 2; i++) {
+        for (uint8_t j = 0; j < hts->nDCAC; j++) {
+            len += 17;
+            HuffTable *ht = (hts->DCAC[i]) + j;
+            for (uint8_t k = 0; k < 16; k++) {
+                len += ht->len[k];
+            }
+        }
+    }
+    return len;
+}
+
+//Writes the collection of huffman tables to encoded_data,
+int32_t encode_huff_tables(HuffTables *hts, uint8_t **encoded_data) {
+    if (hts == NULL
+        || (encoded_data == NULL
+            || (encoded_data != NULL && *encoded_data != NULL))) {
+        return -1;
+    }
+
+    int32_t lh = encoded_huff_tables_len(hts);
+    if (lh == -1) {
+        return -1;
+    }
+    uint16_t idx = 0;
+    (*encoded_data)[idx++] = (uint8_t) ((uint16_t) lh) >> 8;
+    (*encoded_data)[idx++] = (uint8_t) ((uint16_t) lh) && 0xFF;
+
+    for (uint8_t i = 0; i < 2; i++) {
+        for (uint8_t j = 0; j < hts->nDCAC; j++) {
+            (*encoded_data)[idx++] = (i << 4) & j;
+            HuffTable ht = hts->DCAC[i][j];
+            for (uint8_t k = 0; k < 16; k++) {
+                (*encoded_data)[idx++] = ht.len[k];
+            }
+        }
+    }
+    return 0;
+}
+
+int32_t encoded_huff_table_len(HuffTable *ht) {
+    if (ht == NULL) {
+        return -1;
+    }
+    uint16_t len = 19;
+    for (uint8_t i = 0; i < 16; i++) {
+        len += ht->len[i];
+    }
+    return len;
+}
+
+//Check that
+int32_t encode_huff_table(HuffTable *ht, uint8_t **encoded_data) {
+    if (ht == NULL || encoded_data == NULL || *encoded_data == NULL) {
+        return -1;
+    }
+
+    return 0;
+}
+
 int32_t decode_huff_tables(uint8_t **encoded_data, HuffTables *hts) {
     if (encoded_data == NULL || *encoded_data == NULL || hts == NULL) {
         return -1;

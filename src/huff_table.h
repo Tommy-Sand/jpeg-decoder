@@ -19,6 +19,14 @@ int new_huff_tables(Encoding process, HuffTables *hts);
 
 int32_t decode_huff_tables(uint8_t **encoded_data, HuffTables *hts);
 
+int32_t encoded_huff_tables_len(HuffTables *hts);
+
+int32_t encode_huff_tables(HuffTables *hts, uint8_t **encoded_data);
+
+int32_t encoded_huff_table_len(HuffTable *ht);
+
+int32_t encode_huff_table(HuffTable *ht, uint8_t **encoded_data);
+
 int32_t free_huff_tables(HuffTables *hts);
 
 void print_huff_tables(HuffTables *hts);
