@@ -551,7 +551,7 @@ int decode_data_unit(
     }
 
     if (dc < (1 << (mag - 1))) {
-        dc += (-1 << mag) + 1;
+        dc += -1 - ((1 << mag) - 2);
     }
 
     dc += *pred;
@@ -612,7 +612,7 @@ int decode_data_unit(
         }
 
         if (amp < (1 << (size - 1))) {
-            amp += (-1 << size) + 1;
+            amp += -1 - ((1 << size) - 2);
         }
         du[i] = amp;
     }
