@@ -10,17 +10,17 @@
 #include <sys/types.h>
 #include <unistd.h>
 
+#include "colour_conversion.h"
 #include "decode.h"
 #include "frame_header.h"
 #include "huff_table.h"
 #include "quant_table.h"
 #include "restart_interval.h"
 #include "scan_header.h"
-#include "colour_conversion.h"
 
 int display_image(int width, int height, SDL_Surface *image);
 int read_app_segment(uint8_t **encoded_data);
-int mmap_file(const char *filename, uint8_t **data);
+int64_t mmap_file(const char *filename, uint8_t **data);
 
 int main(int argc, char *argv[]) {
     if (argc < 2) {
@@ -29,7 +29,7 @@ int main(int argc, char *argv[]) {
     }
 
     uint8_t *buf;
-    size_t size = mmap_file(argv[1], &buf);
+    int64_t size = mmap_file(argv[1], &buf);
     if (size == -1) {
         return -1;
     }
@@ -83,13 +83,11 @@ int main(int argc, char *argv[]) {
     }
 
     if (fh.ncs == 1) {
-		y_rgb(&fh, img, pixels, width, height, pitch);
-    }
-    else if (fh.ncs == 3) {
-		ycbcr_rgb(&fh, img, pixels, width, height, pitch);
-    }
-    else if (fh.ncs == 4) {
-		yccb_rgb(&fh, img, pixels, width, height, pitch);
+        y_rgb(&fh, img, pixels, width, height, pitch);
+    } else if (fh.ncs == 3) {
+        ycbcr_rgb(&fh, img, pixels, width, height, pitch);
+    } else if (fh.ncs == 4) {
+        yccb_rgb(&fh, img, pixels, width, height, pitch);
     }
     free_img(img);
 
@@ -129,7 +127,7 @@ int display_image(int width, int height, SDL_Surface *image) {
     return 0;
 }
 
-int mmap_file(const char *filename, uint8_t **data) {
+int64_t mmap_file(const char *filename, uint8_t **data) {
     struct stat st;
     if (stat(filename, &st) == -1) {
         fprintf(stderr, "Could not get size of file, %s", strerror(errno));
