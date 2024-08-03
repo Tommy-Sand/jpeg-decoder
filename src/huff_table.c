@@ -39,9 +39,7 @@ int new_huff_tables(Encoding process, HuffTables *hts) {
     return 0;
 }
 
-//The length is for how many bytes needed to write
-//the huffman table to the compressed data formats
-//including the length
+//Length of the huffman tables if they were encoded
 int32_t encoded_huff_tables_len(HuffTables *hts) {
     if (hts == NULL || hts->nDCAC > 4) {
         return -1;
@@ -61,7 +59,12 @@ int32_t encoded_huff_tables_len(HuffTables *hts) {
 }
 
 //Writes the collection of huffman tables to encoded_data,
-int32_t encode_huff_tables(HuffTables *hts, uint8_t **encoded_data) {
+//if encoded_data is null then the memory is allocated
+//else it's assumed that *encoded_data is a pointer with
+//len, this len should equal or exceed encoded_huff_tables_len()
+//If memory is allocated then it must be freed free(*encoded_data)
+int32_t
+encode_huff_tables(HuffTables *hts, uint8_t **encoded_data, uint32_t len) {
     if (hts == NULL
         || (encoded_data == NULL
             || (encoded_data != NULL && *encoded_data != NULL))) {
@@ -69,10 +72,17 @@ int32_t encode_huff_tables(HuffTables *hts, uint8_t **encoded_data) {
     }
 
     int32_t lh = encoded_huff_tables_len(hts);
-    if (lh == -1) {
+    if (encoded_data != NULL && (int64_t) lh <= (int64_t) len) {
         return -1;
+    } else if (encoded_data == NULL) {
+        uint8_t *allocated_data = malloc(len);
+        if (allocated_data == NULL) {
+            return -1;
+        }
+        *encoded_data = allocated_data;
     }
-    uint16_t idx = 0;
+
+    uint32_t idx = 0;
     (*encoded_data)[idx++] = (uint8_t) ((uint16_t) lh) >> 8;
     (*encoded_data)[idx++] = (uint8_t) ((uint16_t) lh) && 0xFF;
 
@@ -83,11 +93,18 @@ int32_t encode_huff_tables(HuffTables *hts, uint8_t **encoded_data) {
             for (uint8_t k = 0; k < 16; k++) {
                 (*encoded_data)[idx++] = ht.len[k];
             }
+
+            for (uint8_t k = 0; k < 16; k++) {
+                for (uint8_t l = 0; l < ht.len[k]; l++) {
+                    (*encoded_data)[idx++] = ht.symbols[k][l];
+                }
+            }
         }
     }
     return 0;
 }
 
+//Length of the huffman table if it was encoded
 int32_t encoded_huff_table_len(HuffTable *ht) {
     if (ht == NULL) {
         return -1;
@@ -100,11 +117,44 @@ int32_t encoded_huff_table_len(HuffTable *ht) {
 }
 
 //Check that
-int32_t encode_huff_table(HuffTable *ht, uint8_t **encoded_data) {
-    if (ht == NULL || encoded_data == NULL || *encoded_data == NULL) {
+int32_t encode_huff_table(
+    HuffTable *ht,
+    uint8_t **encoded_data,
+    uint32_t len,
+    uint8_t table_class,
+    uint8_t dest_id
+) {
+    if (ht == NULL
+        || (encoded_data == NULL
+            || (encoded_data != NULL && *encoded_data != NULL))) {
         return -1;
     }
 
+    int32_t lh = encoded_huff_table_len(ht);
+    if (encoded_data != NULL && (int64_t) lh <= (int64_t) len) {
+        return -1;
+    } else if (encoded_data == NULL) {
+        uint8_t *allocated_data = malloc(len);
+        if (allocated_data == NULL) {
+            return -1;
+        }
+        *encoded_data = allocated_data;
+    }
+
+    uint32_t idx = 0;
+    (*encoded_data)[idx++] = (uint8_t) ((uint16_t) lh) >> 8;
+    (*encoded_data)[idx++] = (uint8_t) ((uint16_t) lh) && 0xFF;
+
+    (*encoded_data)[idx++] = (table_class << 4) & dest_id;
+    for (uint8_t k = 0; k < 16; k++) {
+        (*encoded_data)[idx++] = ht->len[k];
+    }
+
+    for (uint8_t k = 0; k < 16; k++) {
+        for (uint8_t l = 0; l < ht->len[k]; l++) {
+            (*encoded_data)[idx++] = ht->symbols[k][l];
+        }
+    }
     return 0;
 }
 
