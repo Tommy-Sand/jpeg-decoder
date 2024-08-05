@@ -15,10 +15,6 @@ const uint8_t zigzag[64] = {
     0x63, 0x54, 0x45, 0x36, 0x27, 0x37, 0x46, 0x55, 0x64, 0x73, 0x74,
     0x65, 0x56, 0x47, 0x57, 0x66, 0x75, 0x76, 0x67, 0x77};
 
-QuantTables *new_quant_tables() {
-    return (QuantTables *) malloc(sizeof(QuantTables));
-}
-
 int32_t decode_quant_table(uint8_t **encoded_data, QuantTables *qts) {
     if (encoded_data == NULL || *encoded_data == NULL || qts == NULL) {
         return -1;
@@ -91,21 +87,3 @@ int32_t dequant_data_unit(QuantTable *qt, int16_t *du) {
     log_du++;
     return 0;
 }
-
-int32_t free_quant_tables(QuantTables *qts) {
-    if (qts == NULL) {
-        return -1;
-    }
-    free(qts);
-    return 0;
-}
-
-/*TODO Unneeded and should be removed
-int32_t free_quant_table (QuantTable *qt) {
-	if (qt == NULL) {
-		return -1;
-	}
-	free(qt);
-	return 0;
-}
-*/

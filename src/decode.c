@@ -90,7 +90,8 @@ int decode_jpeg_buffer(uint8_t *buf, size_t len, FrameHeader *fh, Image **img) {
 
     ScanHeader sh;
     Image *img_ = NULL;
-    QuantTables *qts = NULL;
+    bool init_qts = false;
+    QuantTables qts;
     bool init_hts = false;
     HuffTables hts;
     RestartInterval ri = 0;
@@ -235,23 +236,23 @@ int decode_jpeg_buffer(uint8_t *buf, size_t len, FrameHeader *fh, Image **img) {
                     }
 
                     print_scan_header(&sh);
-                    if (decode_scan(&ptr, img_, fh, &sh, &hts, qts, ri) != 0) {
+                    if (!init_qts) {
+                        printf(
+                            "DEBUG: Could not decode scan no quantization table provided\n"
+                        );
+                        return -1;
+                    }
+                    if (decode_scan(&ptr, img_, fh, &sh, &hts, &qts, ri) != 0) {
                         printf("DEBUG: Decode Scan failed\n");
                         return -1;
                     }
                     break;
                 case 0xDB:  //Define Quant Table
                     printf("DEBUG: Definition of quant table\n");
-                    if (qts == NULL) {
-                        qts = new_quant_tables();
-                        if (qts == NULL) {
-                            printf("Cannot allocate memory for qts");
-                            return -1;
-                        }
-                    }
-                    if (decode_quant_table(&ptr, qts) == -1) {
+                    if (decode_quant_table(&ptr, &qts) == -1) {
                         printf("DEBUG: Quant Table read failed\n");
                     }
+                    init_qts = true;
                     break;
                 case 0xDC:  //Define number of lines
                     printf("DEBUG: Defined Number of lines\n");
@@ -325,9 +326,6 @@ int decode_jpeg_buffer(uint8_t *buf, size_t len, FrameHeader *fh, Image **img) {
     }
 
     *img = img_;
-    if (qts != NULL) {
-        free_quant_tables(qts);
-    }
     if (hts.nDCAC > 0) {
         free_huff_tables(&hts);
     }
