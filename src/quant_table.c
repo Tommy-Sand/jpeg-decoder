@@ -15,6 +15,60 @@ const uint8_t zigzag[64] = {
     0x63, 0x54, 0x45, 0x36, 0x27, 0x37, 0x46, 0x55, 0x64, 0x73, 0x74,
     0x65, 0x56, 0x47, 0x57, 0x66, 0x75, 0x76, 0x67, 0x77};
 
+int32_t encode_quant_tables_len(QuantTables *qts) {
+	if (qts == NULL) {
+		return -1; 
+	}
+
+	uint16_t lq = 2;
+	for (uint8_t i = 0; i < 4; i++) {
+		lq += 65 + (64 * qts->tables[i].precision);
+	}
+	return lq;
+}
+
+int32_t encode_quant_tables(QuantTables *qts, uint8_t **encoded_data, uint32_t len) {
+    if (qts == NULL
+        || (encoded_data == NULL
+            || (encoded_data != NULL && *encoded_data != NULL))) {
+        return -1;
+    }
+
+	int32_t lq = encode_quant_tables_len(qts);
+	if (lq == -1) {
+		return -1;
+	}
+	if (encoded_data != NULL && (int64_t) lq <= (int64_t) len) {
+		return -1;
+	} else if (encoded_data == NULL) {
+		uint8_t *allocated_data = malloc(len);
+		if (allocated_data == NULL) {
+			return -1;
+		}
+		*encoded_data = allocated_data;
+	}
+
+    uint32_t idx = 0;
+    (*encoded_data)[idx++] = (uint8_t) ((uint16_t) lq) >> 8;
+    (*encoded_data)[idx++] = (uint8_t) ((uint16_t) lq) && 0xFF;
+
+    for (uint8_t i = 0; i < 4; i++) {
+		QuantTable qt = qts->tables[i];
+		(*encoded_data)[idx++] = (qt.precision << 4) & i;
+		if (qt.precision) {
+			for (uint8_t k = 0; k < 64; k++) {
+				(*encoded_data)[idx++] = qt.table[k];
+			}
+		} else {
+			for (uint8_t k = 0; k < 64; k++) {
+				(*encoded_data)[idx++] = (uint8_t) (qt.table[k] >> 8);
+				(*encoded_data)[idx++] = (uint8_t) (qt.table[k] & 0xFF);
+			}
+		}
+	}
+    return 0;
+}
+
 int32_t decode_quant_table(uint8_t **encoded_data, QuantTables *qts) {
     if (encoded_data == NULL || *encoded_data == NULL || qts == NULL) {
         return -1;
