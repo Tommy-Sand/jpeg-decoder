@@ -1,8 +1,157 @@
 #include <complex.h>
+#include <string.h>
+#include <stdint.h>
 #define CLAMP(in) ((in > 255.0) ? 255 : ((in < 0.0) ? 0.0 : in))
+
+void fast_2ddct(int16_t du[64], complex double ret_du[64]);
+void fast_dct(complex double in[8], complex double out[8]);
+void fft(uint8_t len, complex double data[len], uint8_t stride, complex double ret_du[len]);
 
 void fast_2didct(int16_t du[64]);
 void fast_idct(complex double in[8], complex double out[8]);
+
+void fast_2ddct(int16_t du[64], complex double ret_du[64]) {
+    complex double cdu[64] = {0.0};
+    for (uint8_t i = 0; i < 64; i++) {
+        cdu[i] = (complex double) (du[i] - 128);
+    }
+
+    complex double ret_dux[64] = {0};
+    for (uint8_t i = 0; i < 8; i++) {
+        fast_dct(cdu + (i * 8), ret_dux + (i * 8));
+    }
+
+    complex double in_duy[64] = {0};
+    for (uint8_t j = 0; j < 8; j++) {
+        in_duy[j * 8] = ret_dux[j];
+        in_duy[(j * 8) + 1] = ret_dux[j + 8];
+        in_duy[(j * 8) + 2] = ret_dux[j + 16];
+        in_duy[(j * 8) + 3] = ret_dux[j + 24];
+        in_duy[(j * 8) + 4] = ret_dux[j + 32];
+        in_duy[(j * 8) + 5] = ret_dux[j + 40];
+        in_duy[(j * 8) + 6] = ret_dux[j + 48];
+        in_duy[(j * 8) + 7] = ret_dux[j + 56];
+    }
+
+    complex double ret_duy[64] = {0};
+    for (uint8_t k = 0; k < 8; k++) {
+        fast_dct(in_duy + (k * 8), ret_duy + (k * 8));
+    }
+    
+	//transpose TODO Remove clamp and find to keep the percision since 
+	// it is required for the quatization stage https://en.wikipedia.org/wiki/JPEG#Discrete_cosine_transform
+    for (uint8_t j = 0; j < 8; j++) {
+        ret_du[j] = creal(ret_duy[j * 8]);
+        ret_du[j + 8] = creal(ret_duy[(j * 8) + 1]);
+        ret_du[j + 16] = creal(ret_duy[(j * 8) + 2]);
+        ret_du[j + 24] = creal(ret_duy[(j * 8) + 3]);
+        ret_du[j + 32] = creal(ret_duy[(j * 8) + 4]);
+        ret_du[j + 40] = creal(ret_duy[(j * 8) + 5]);
+        ret_du[j + 48] = creal(ret_duy[(j * 8) + 6]);
+        ret_du[j + 56] = creal(ret_duy[(j * 8) + 7]);
+    }
+    
+    for (uint8_t i = 0; i < 64; i++) {
+        ret_du[i] = (complex double) (0.25 * du[i]);
+    }
+    for (uint8_t i = 0; i < 8; i++) {
+        ret_du[i] *= 0.707106781;
+        ret_du[i * 8] *= 0.707106781;
+    }
+}
+
+void correct_fast_dct(complex double in[8], complex double out[8]) {
+	const float PI =  3.14159265358979323846;
+
+	complex double temp_du[8];
+	for (uint8_t i = 0; i < 4; i++) {
+		temp_du[i] = in[2*i];
+		temp_du[4 + i] = in[16 - 2*(4 + i) - 1];
+	}
+
+	complex double fft_ret_du[8];
+	fft(8, temp_du, 1, fft_ret_du);
+
+	for (uint8_t i = 0; i < 8; i++) {
+		fft_ret_du[i] *= 2 * cexp(-I * PI * i / 16.0);
+	}
+
+	for (uint8_t i = 0; i < 5; i++) {
+		out[i] = creal(fft_ret_du[i]);
+		if (i > 0) {
+			out[8 - i] = -cimag(fft_ret_du[i]);
+		}
+	} 
+}
+
+
+void fast_dct(complex double in[8], complex double out[8]) {
+	const float PI =  3.14159265358979323846;
+
+	complex double temp_du[8];
+	for (uint8_t i = 0; i < 4; i++) {
+		temp_du[i] = in[2*i];
+		temp_du[4 + i] = in[16 - 2*(4 + i) - 1];
+	}
+
+	complex double packed[4];
+	for(uint8_t i = 0; i < 4; i++) {
+		packed[i] = temp_du[2*i] + I * temp_du[2*i + 1];
+	}
+
+	complex double fft_ret_du[4];
+	fft(4, packed, 1, fft_ret_du);
+
+	complex double unpacked_du[8];
+	for(uint8_t i = 1; i < 3; i++) {
+		complex double temp1 = 0.5 * (fft_ret_du[i] + conj(fft_ret_du[4 - i]));
+		complex double temp2 = 0.5 * I * cexp(I * -2.0 * i * PI / 8) * (fft_ret_du[i] - conj(fft_ret_du[4 - i]));
+		unpacked_du[1] = temp1 - temp2;
+	}
+	unpacked_du[0] = creal(fft_ret_du[0]) + cimag(fft_ret_du[0]);
+	unpacked_du[2] = creal(fft_ret_du[2]) - I * cimag(fft_ret_du[2]);
+	unpacked_du[4] = creal(fft_ret_du[0]) - cimag(fft_ret_du[0]);
+
+	for (uint8_t i = 0; i < 5; i++) {
+		unpacked_du[i] = 2 * cexp(-I * PI * i / 16) * unpacked_du[i];
+	}
+
+	for (uint8_t i = 0; i < 5; i++) {
+		out[i] = creal(unpacked_du[i]);
+		if (i > 0) {
+			out[8 - i] = -cimag(unpacked_du[i]);
+		}
+	} 
+}
+
+void fft(uint8_t len, complex double du[len], uint8_t stride, complex double ret_du[len]) {
+	const float PI =  3.14159265358979323846;
+
+	if (len == 1) {
+		ret_du[0] = du[0];
+		return;
+	} else {
+		complex double copy_du[len];
+		memcpy(copy_du, du, sizeof(complex double) * len);
+		complex double temp_ret_du[len];
+
+		fft(len/2, du, 2 * stride, ret_du);
+		fft(len/2, du + stride, 2 * stride, ret_du + len/2);
+
+		complex double copy_du2[len];
+		memcpy(copy_du2, ret_du, sizeof(complex double) * len);
+		for (uint8_t i = 0; i < len/2; i++) {
+			complex double temp_ret = ret_du[len/2 + i];
+			complex double temp1 = cexp((I * PI * (float) (-2*i) / (float) len)); 
+			complex double temp2 = temp1 * temp_ret; 
+			temp_ret_du[i] = ret_du[i] + temp2; 
+			temp_ret_du[len/2 + i] = ret_du[i] - temp2;
+		}
+		for (uint8_t i = 0; i < len; i++) {
+			ret_du[i] = temp_ret_du[i];
+		}
+	}
+}
 
 void fast_2didct(int16_t du[64]) {
     complex double cdu[64] = {0.0};
@@ -66,15 +215,13 @@ void ifct(complex double du[8], complex double ret_du[8]) {
 	complex double temp_du[8];
 	temp_du[0] = du[0];
 	for (uint8_t k = 1; k < 8; k++) {
-		temp_du[k] = 0.5 * cexp(I * PI * (float) k / 16.0) * (du[k] - I * du[8 -
-k]);
+		temp_du[k] = 0.5 * cexp(I * PI * (float) k / 16.0) * (du[k] - I * du[8 - k]);
 	}
 
 	complex double packed[4];
 	for(uint8_t i = 0; i < 4; i++) {
 		packed[i] = (0.5 * (temp_du[i] + temp_du[4 + i])) +
-			 (0.5 * I * cexp (I * PI * 2.0 * i / 8.0) * (temp_du[i] - temp_du[4
-+ i]));
+			 (0.5 * I * cexp (I * PI * 2.0 * i / 8.0) * (temp_du[i] - temp_du[4 + i]));
 	}
 
 	complex double ifft_ret_du[4];
@@ -152,7 +299,8 @@ void fast_idct(complex double in[8], complex double out[8]) {
 // reference since the used version is unrolled and precomputed
 /*
 void ifft(uint8_t len, complex double du[len], uint8_t stride, complex double
-ret_du[len]) { const float PI =  3.14159265358979323846;
+ret_du[len]) { 
+	const float PI =  3.14159265358979323846;
 
 	if (len == 1) {
 		ret_du[0] = du[0];
@@ -169,9 +317,10 @@ ret_du[len]) { const float PI =  3.14159265358979323846;
 		memcpy(copy_du2, ret_du, sizeof(complex double) * len);
 		for (uint8_t i = 0; i < len/2; i++) {
 			complex double temp_ret = ret_du[len/2 + i];
-			complex double temp1 = cexp((I * PI * (float) (2*i) / (float)
-(len))); complex double temp2 = temp1 * temp_ret; temp_ret_du[i] = ret_du[i] +
-temp2; temp_ret_du[len/2 + i] = ret_du[i] - temp2;
+			complex double temp1 = cexp((I * PI * (float) (2*i) / (float) len)); 
+			complex double temp2 = temp1 * temp_ret; 
+			temp_ret_du[i] = ret_du[i] + temp2; 
+			temp_ret_du[len/2 + i] = ret_du[i] - temp2;
 		}
 		for (uint8_t i = 0; i < len; i++) {
 			ret_du[i] = temp_ret_du[i];
