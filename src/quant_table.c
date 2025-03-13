@@ -91,12 +91,14 @@ int32_t decode_quant_table(uint8_t **encoded_data, QuantTables *qts) {
         }
         QuantTable *qt = qts->tables + id;
         qt->precision = precision;
+		printf("percision %d\n", qt->precision);
 
         for (uint8_t i = 0; i < 64; i++) {
             uint8_t row = zigzag[i] & 0xF;
             uint8_t col = (zigzag[i] >> 4) & 0xF;
             qt->table[(row * 8) + col] = *(ptr++);
-            if (precision == 16) {
+            if (precision == 1) {
+				printf("percision is 16\n");
                 qt->table[(row * 8) + col] =
                     (qt->table[(row * 8) + col] << 8) + *(ptr++);
             }

@@ -34,7 +34,7 @@ typedef struct {
 
 typedef struct {
     Encoding process;
-    uint8_t precision;
+    uint8_t precision; 
     uint16_t X;
     uint16_t Y;
     uint8_t ncs;  //number of components

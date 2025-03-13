@@ -16,7 +16,8 @@ int write_data_unit(
     uint16_t x_to_mcu,
     int16_t *du,
     uint32_t x,
-    uint32_t y
+    uint32_t y,
+	bool precision
 );
 int decode_scan(
     uint8_t **encoded_data,
@@ -229,6 +230,7 @@ int decode_jpeg_buffer(uint8_t *buf, size_t len, FrameHeader *fh, Image **img) {
                     break;
                 case 0xDA:  //SOS
                     printf("DEBUG: SOS\n");
+					//print_huff_tables(&hts);
 
                     if (decode_scan_header(&ptr, &sh) != 0) {
                         printf("DEBUG: Scan Header read failed\n");
@@ -360,7 +362,7 @@ int write_mcu(Image *img, int16_t (**mcu)[64], FrameHeader *fh) {
 
                 int16_t *du = *((*(mcu + i)) + ((j * c->hsf) + k));
 
-                write_data_unit(img, i, x_to_mcu, du, x, y);
+                write_data_unit(img, i, x_to_mcu, du, x, y, fh->precision == 12);
             }
         }
     }
@@ -374,12 +376,18 @@ int write_data_unit(
     uint16_t x_to_mcu,
     int16_t *du,
     uint32_t x,
-    uint32_t y
+    uint32_t y,
+	bool precision
 ) {
     for (uint16_t j = y; j < y + 8; j++) {
         for (uint16_t k = x; k < x + 8; k++) {
-            *(*(img->buf + comp) + (j * x_to_mcu) + k) =
-                (uint8_t) du[((j - y) * 8) + (k - x)];
+			if (precision) {
+				*(*(img->buf + comp) + (j * x_to_mcu) + k) =
+						(uint8_t) ((du[((j - y) * 8) + (k - x)] / 65535.0) * 255.0);
+			} else {
+				*(*(img->buf + comp) + (j * x_to_mcu) + k) =
+						(uint8_t) du[((j - y) * 8) + (k - x)];
+			}
         }
     }
     return 0;
@@ -484,7 +492,7 @@ int decode_scan(
                         return -1;
                     }
 
-                    fast_2didct(du);
+                    fast_2didct(du, fh->precision == 12);
                 }
             }
         }

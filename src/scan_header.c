@@ -30,20 +30,6 @@ int32_t decode_scan_header(uint8_t **encoded_data, ScanHeader *sh) {
     sh->ah = (*ptr) >> 4;
     sh->al = (*(ptr++)) & 0xF;
 
-    if (0) {
-        printf("nics : %d\n", sh->nics);
-        for (uint8_t i = 0; i < sh->nics; i++) {
-            ImageComponent ic = sh->ics[i];
-            printf("sc : %d\n", ic.sc);
-            printf("dc : %d\n", ic.dc);
-            printf("ac : %d\n", ic.ac);
-        }
-        printf("ss : %d\n", sh->ss);
-        printf("se : %d\n", sh->se);
-        printf("ah : %d\n", sh->ah);
-        printf("al : %d\n", sh->al);
-    }
-
     *encoded_data = ptr;
     return 0;
 }

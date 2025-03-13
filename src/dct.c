@@ -1,13 +1,14 @@
 #include <complex.h>
 #include <string.h>
 #include <stdint.h>
-#define CLAMP(in) ((in > 255.0) ? 255 : ((in < 0.0) ? 0.0 : in))
+#define CLAMP_8(in) ((in > 255.0) ? 255 : ((in < 0.0) ? 0.0 : in))
+#define CLAMP_16(in) ((in > 65535.0) ? 65535.0 : ((in < 0.0) ? 0.0 : in))
 
 void fast_2ddct(int16_t du[64], complex double ret_du[64]);
 void fast_dct(complex double in[8], complex double out[8]);
 void fft(uint8_t len, complex double data[len], uint8_t stride, complex double ret_du[len]);
 
-void fast_2didct(int16_t du[64]);
+void fast_2didct(int16_t du[64], uint8_t precision);
 void fast_idct(complex double in[8], complex double out[8]);
 
 void fast_2ddct(int16_t du[64], complex double ret_du[64]) {
@@ -38,7 +39,7 @@ void fast_2ddct(int16_t du[64], complex double ret_du[64]) {
         fast_dct(in_duy + (k * 8), ret_duy + (k * 8));
     }
     
-	//transpose TODO Remove clamp and find to keep the percision since 
+	//transpose TODO Remove clamp and find to keep the precision since 
 	// it is required for the quatization stage https://en.wikipedia.org/wiki/JPEG#Discrete_cosine_transform
     for (uint8_t j = 0; j < 8; j++) {
         ret_du[j] = creal(ret_duy[j * 8]);
@@ -153,7 +154,10 @@ void fft(uint8_t len, complex double du[len], uint8_t stride, complex double ret
 	}
 }
 
-void fast_2didct(int16_t du[64]) {
+//precision: 0 indicates an 8 bit precision level, add 128
+//precision: 1 indicates a 12 bit precision level, add 2048
+void fast_2didct(int16_t du[64], uint8_t precision) {
+	printf("%d\n", precision);
     complex double cdu[64] = {0.0};
     for (uint8_t i = 0; i < 64; i++) {
         cdu[i] = (complex double) du[i];
@@ -186,23 +190,46 @@ void fast_2didct(int16_t du[64]) {
     }
 
     // transpose
-    for (uint8_t j = 0; j < 8; j++) {
-        du[j] = (int16_t) CLAMP((0.25 * creal(ret_duy[j * 8])) + 128.0);
-        du[j + 8] =
-            (int16_t) CLAMP((0.25 * creal(ret_duy[(j * 8) + 1])) + 128.0);
-        du[j + 16] =
-            (int16_t) CLAMP((0.25 * creal(ret_duy[(j * 8) + 2])) + 128.0);
-        du[j + 24] =
-            (int16_t) CLAMP((0.25 * creal(ret_duy[(j * 8) + 3])) + 128.0);
-        du[j + 32] =
-            (int16_t) CLAMP((0.25 * creal(ret_duy[(j * 8) + 4])) + 128.0);
-        du[j + 40] =
-            (int16_t) CLAMP((0.25 * creal(ret_duy[(j * 8) + 5])) + 128.0);
-        du[j + 48] =
-            (int16_t) CLAMP((0.25 * creal(ret_duy[(j * 8) + 6])) + 128.0);
-        du[j + 56] =
-            (int16_t) CLAMP((0.25 * creal(ret_duy[(j * 8) + 7])) + 128.0);
-    }
+	double level_shift = 128.0;
+	if (!precision) {
+		for (uint8_t j = 0; j < 8; j++) {
+			du[j] = (int16_t) CLAMP_8((0.25 * creal(ret_duy[j * 8])) + level_shift);
+			du[j + 8] =
+				(int16_t) CLAMP_8((0.25 * creal(ret_duy[(j * 8) + 1])) + level_shift);
+			du[j + 16] =
+				(int16_t) CLAMP_8((0.25 * creal(ret_duy[(j * 8) + 2])) + level_shift);
+			du[j + 24] =
+				(int16_t) CLAMP_8((0.25 * creal(ret_duy[(j * 8) + 3])) + level_shift);
+			du[j + 32] =
+				(int16_t) CLAMP_8((0.25 * creal(ret_duy[(j * 8) + 4])) + level_shift);
+			du[j + 40] =
+				(int16_t) CLAMP_8((0.25 * creal(ret_duy[(j * 8) + 5])) + level_shift);
+			du[j + 48] =
+				(int16_t) CLAMP_8((0.25 * creal(ret_duy[(j * 8) + 6])) + level_shift);
+			du[j + 56] =
+				(int16_t) CLAMP_8((0.25 * creal(ret_duy[(j * 8) + 7])) + level_shift);
+		}
+	} else {
+		double level_shift = 2048.0;
+		printf("awodij\n");
+		for (uint8_t j = 0; j < 8; j++) {
+			du[j] = (int16_t) CLAMP_16((0.25 * creal(ret_duy[j * 8])) + level_shift);
+			du[j + 8] =
+				(int16_t) CLAMP_16((0.25 * creal(ret_duy[(j * 8) + 1])) + level_shift);
+			du[j + 16] =
+				(int16_t) CLAMP_16((0.25 * creal(ret_duy[(j * 8) + 2])) + level_shift);
+			du[j + 24] =
+				(int16_t) CLAMP_16((0.25 * creal(ret_duy[(j * 8) + 3])) + level_shift);
+			du[j + 32] =
+				(int16_t) CLAMP_16((0.25 * creal(ret_duy[(j * 8) + 4])) + level_shift);
+			du[j + 40] =
+				(int16_t) CLAMP_16((0.25 * creal(ret_duy[(j * 8) + 5])) + level_shift);
+			du[j + 48] =
+				(int16_t) CLAMP_16((0.25 * creal(ret_duy[(j * 8) + 6])) + level_shift);
+			du[j + 56] =
+				(int16_t) CLAMP_16((0.25 * creal(ret_duy[(j * 8) + 7])) + level_shift);
+		}
+	}
 }
 
 // This original function is kept commented out to serve as a

@@ -34,7 +34,8 @@ int new_huff_tables(Encoding process, HuffTables *hts) {
             hts->nDCAC = 4;
             break;
         default:
-            return -1;
+            //return -1;
+            hts->nDCAC = 4;
     }
     return 0;
 }

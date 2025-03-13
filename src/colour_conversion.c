@@ -13,12 +13,13 @@ int y_rgb(
         return -1;
     };
 
-    for (uint32_t i = 0; i < width; i++) {
-        for (uint32_t j = 0; j < height; j++) {
-            uint32_t idx = i * pitch + j * 3;
-            pixels[idx] = *((*img->buf) + i);
-            pixels[idx] = *((*img->buf) + i);
-            pixels[idx] = *((*img->buf) + i);
+    for (uint32_t i = 0; i < height; i++) {
+        for (uint32_t j = 0; j < width; j++) {
+            uint32_t src_idx = i * width + j;
+            uint32_t dst_idx = i * pitch + j * 3;
+            pixels[dst_idx] = *((*img->buf) + src_idx);
+            pixels[dst_idx + 1] = *((*img->buf) + src_idx);
+            pixels[dst_idx + 2] = *((*img->buf) + src_idx);
         }
     }
     return 0;
