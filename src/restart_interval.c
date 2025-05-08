@@ -16,5 +16,6 @@ int32_t decode_restart_interval(uint8_t **encoded_data, RestartInterval *ri) {
 
     *ri = (*(ptr++)) << 8;
     *ri += (*(ptr++));
+    *encoded_data = ptr;
     return 0;
 }

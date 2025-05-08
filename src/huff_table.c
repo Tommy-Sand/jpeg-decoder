@@ -105,7 +105,8 @@ encode_huff_tables(HuffTables *hts, uint8_t **encoded_data, uint32_t len) {
     return 0;
 }
 
-//Length of the huffman table if it was encoded
+// Returns the length of a single 
+// huffman table if it was encoded
 int32_t encoded_huff_table_len(HuffTable *ht) {
     if (ht == NULL) {
         return -1;
@@ -183,7 +184,7 @@ int32_t decode_huff_tables(uint8_t **encoded_data, HuffTables *hts) {
         HuffTable *ht = hts->DCAC[class] + id;
 
         for (uint8_t i = 0; i < 16; i++) {
-            ht->len[i] = (*(ptr++));
+            ht->len[i] = *(ptr++);
         }
 
         uint16_t code = 0;
@@ -192,7 +193,7 @@ int32_t decode_huff_tables(uint8_t **encoded_data, HuffTables *hts) {
             uint8_t **symbols = ht->symbols + i;
 
             if (*symbols != NULL) {
-                free(symbols);
+                free(*symbols);
             }
 
             if (len == 0) {
@@ -268,11 +269,11 @@ int32_t free_huff_tables(HuffTables *hts) {
     HuffTable *AC = hts->DCAC[1];
     for (uint8_t i = 0; i < 4; i++) {
         for (uint8_t j = 0; j < 16; j++) {
-            if ((DC + i)->symbols[j] == NULL) {
-                free((DC + i)->symbols[j]);
+            if (DC[i].symbols[j] != NULL) {
+                free(DC[i].symbols[j]);
             }
-            if ((AC + i)->symbols[j] == NULL) {
-                free((AC + i)->symbols[j]);
+            if (AC[i].symbols[j] != NULL) {
+                free(AC[i].symbols[j]);
             }
         }
     }
