@@ -9,6 +9,7 @@
 #include <sys/stat.h>
 #include <sys/types.h>
 #include <unistd.h>
+#include <time.h>
 
 #include "colour_conversion.h"
 #include "decode.h"
@@ -17,6 +18,7 @@
 #include "quant_table.h"
 #include "restart_interval.h"
 #include "scan_header.h"
+#include "debug.h"
 
 int display_image(int width, int height, SDL_Surface *image);
 int read_app_segment(uint8_t **encoded_data);
@@ -33,12 +35,12 @@ int main(int argc, char *argv[]) {
     if (size == -1) {
         return -1;
     }
-    printf("length: %lu\n", size);
+    debug_print("length: %lu\n", size);
 
     Image *img = NULL;
     FrameHeader fh;
     if (decode_jpeg_buffer(buf, size, &fh, &img) != 0) {
-        printf("DEBUG: Decoding jpeg buffer failed\n");
+        fprintf(stderr, "DEBUG: Decoding jpeg buffer failed\n");
         return -1;
     };
 
@@ -46,7 +48,7 @@ int main(int argc, char *argv[]) {
     uint16_t height = fh.Y;
 
     if (SDL_Init(SDL_INIT_TIMER)) {
-        printf("SDL init failed\n");
+        fprintf(stderr, "SDL_Init failed\n");
         return -1;
     }
 
@@ -58,7 +60,7 @@ int main(int argc, char *argv[]) {
         SDL_PIXELFORMAT_RGB24
     );
     if (!img_surface) {
-        printf("failed\n");
+        fprintf(stderr, "SDL_CreateRGBSurfaceWithFormat failed\n");
         return -1;
     }
     uint16_t pitch = img_surface->pitch;
@@ -104,13 +106,13 @@ int display_image(int width, int height, SDL_Surface *image) {
     SDL_Window *window =
         SDL_CreateWindow("Test window", 100, 100, width, height, 0);
     if (window == NULL) {
-        printf("SDL create window failed\n");
+        fprintf(stderr, "SDL_CreateWindow failed\n");
         return -1;
     }
 
     SDL_Surface *surface = SDL_GetWindowSurface(window);
     if (SDL_BlitSurface(image, NULL, surface, NULL)) {
-        printf("failure");
+        fprintf(stderr, "SDL_BlitSurface failed\n");
         return -1;
     }
     SDL_UpdateWindowSurface(window);
@@ -123,6 +125,8 @@ int display_image(int width, int height, SDL_Surface *image) {
                 quit = true;
             }
         }
+		struct timespec request = { 0, 60 * 1000 * 1000 };
+		nanosleep(&request, NULL); 
     }
     return 0;
 }
@@ -130,26 +134,26 @@ int display_image(int width, int height, SDL_Surface *image) {
 int64_t mmap_file(const char *filename, uint8_t **data) {
     struct stat st;
     if (stat(filename, &st) == -1) {
-        fprintf(stderr, "Could not get size of file, %s", strerror(errno));
+        fprintf(stderr, "Could not get size of file, %s\n", strerror(errno));
         return -1;
     }
     off_t len = st.st_size;
 
     int fd = open(filename, O_RDONLY);
     if (fd == -1) {
-        fprintf(stderr, "Could not open file, %s", strerror(errno));
+        fprintf(stderr, "Could not open file, %s\n", strerror(errno));
         return -1;
     }
 
     void *mmap_ret = mmap(NULL, len, PROT_READ, MAP_SHARED, fd, 0);
     if (mmap_ret == (void *) -1) {
-        fprintf(stderr, "Could not get contents of file, %s", strerror(errno));
+        fprintf(stderr, "Could not get contents of file, %s\n", strerror(errno));
         return -1;
     }
     *data = mmap_ret;
 
     if (close(fd) == -1) {
-        fprintf(stderr, "Could not close file descriptor, %s", strerror(errno));
+        fprintf(stderr, "Could not close file descriptor, %s\n", strerror(errno));
         return -1;
     };
     return len;

@@ -1,4 +1,5 @@
 #include "huff_table.h"
+#include "debug.h"
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -33,8 +34,7 @@ int new_huff_tables(Encoding process, HuffTables *hts) {
         case ESDCTHC:
             hts->nDCAC = 4;
             break;
-        default:
-            //return -1;
+        default: 
             hts->nDCAC = 4;
     }
     return 0;
@@ -218,20 +218,20 @@ int32_t decode_huff_tables(uint8_t **encoded_data, HuffTables *hts) {
         }
     }
 
-    if (0) {
+    if (DEBUG) {
         for (uint8_t i = 0; i < 2; i++) {
             if (i == 0) {
-                printf("DC tables\n");
+                debug_print("DC tables\n");
             } else {
-                printf("AC tables\n");
+                debug_print("AC tables\n");
             }
             for (uint8_t j = 0; j < hts->nDCAC; j++) {
-                printf("\tj: %d\n", j);
+                fprintf(stderr, "\tj: %d\n", j);
                 HuffTable *ht = hts->DCAC[i] + j;
                 for (uint8_t k = 0; k < 16; k++) {
-                    printf("len: %d\n", ht->len[k]);
+                    fprintf(stderr, "len: %d\n", ht->len[k]);
                     if (ht->len[k] == 0) {
-                        printf(
+                        fprintf(stderr,
                             "\t\tk: %d, min_codes: %X, max_codes: %X, len: %d\n",
                             k + 1,
                             ht->min_codes[k],
@@ -240,18 +240,18 @@ int32_t decode_huff_tables(uint8_t **encoded_data, HuffTables *hts) {
                         );
                         continue;
                     }
-                    printf(
+                    fprintf(stderr,
                         "\t\tk: %d, min_codes: %X, max_codes: %X, len: %d\n",
                         k + 1,
                         ht->min_codes[k],
                         ht->max_codes[k],
                         ht->len[k]
                     );
-                    printf("\t\tsymbols: ");
+                    fprintf(stderr, "\t\tsymbols: ");
                     for (uint8_t l = 0; l < ht->len[k]; l++) {
-                        printf("%X, ", *(ht->symbols[k] + l));
+                        fprintf(stderr, "%X, ", *(ht->symbols[k] + l));
                     }
-                    printf("\n");
+                    fprintf(stderr, "\n");
                 }
             }
         }
@@ -281,7 +281,7 @@ int32_t free_huff_tables(HuffTables *hts) {
 }
 
 void print_huff_tables(HuffTables *hts) {
-    if (!hts) {
+    if (!hts || !DEBUG) {
         return;
     }
 
@@ -289,25 +289,25 @@ void print_huff_tables(HuffTables *hts) {
     HuffTable *ACs = hts->DCAC[1];
 
     for (uint8_t i = 0; i < hts->nDCAC; i++) {
-        printf("DC Table: %d\n", i);
+        fprintf(stderr, "DC Table: %d\n", i);
         print_huff_table(DCs + i);
     }
 
     for (uint8_t i = 0; i < hts->nDCAC; i++) {
-        printf("AC Table: %d\n", i);
+        fprintf(stderr, "AC Table: %d\n", i);
         print_huff_table(ACs + i);
     }
 }
 
 void print_huff_table(HuffTable *ht) {
-    if (!ht) {
+    if (!ht || !DEBUG) {
         return;
     }
 
     for (uint8_t k = 0; k < 16; k++) {
-        printf("len: %d\n", ht->len[k]);
+        fprintf(stderr, "len: %d\n", ht->len[k]);
         if (ht->len[k] == 0) {
-            printf(
+            fprintf(stderr,
                 "\t\tk: %d, min_codes: %X, max_codes: %X, len: %d\n",
                 k + 1,
                 ht->min_codes[k],
@@ -316,17 +316,17 @@ void print_huff_table(HuffTable *ht) {
             );
             continue;
         }
-        printf(
+        fprintf(stderr,
             "\t\tk: %d, min_codes: %X, max_codes: %X, len: %d\n",
             k + 1,
             ht->min_codes[k],
             ht->max_codes[k],
             ht->len[k]
         );
-        printf("\t\tsymbols: ");
+        fprintf(stderr, "\t\tsymbols: ");
         for (uint8_t l = 0; l < ht->len[k]; l++) {
-            printf("%X, ", *(ht->symbols[k] + l));
+            fprintf(stderr, "%X, ", *(ht->symbols[k] + l));
         }
-        printf("\n");
+        fprintf(stderr, "\n");
     }
 }

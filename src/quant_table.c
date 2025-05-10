@@ -1,4 +1,5 @@
 #include "quant_table.h"
+#include "debug.h"
 
 #include <stddef.h>
 #include <stdio.h>
@@ -91,22 +92,20 @@ int32_t decode_quant_table(uint8_t **encoded_data, QuantTables *qts) {
         }
         QuantTable *qt = qts->tables + id;
         qt->precision = precision;
-		printf("percision %d\n", qt->precision);
 
         for (uint8_t i = 0; i < 64; i++) {
             uint8_t row = zigzag[i] & 0xF;
             uint8_t col = (zigzag[i] >> 4) & 0xF;
             qt->table[(row * 8) + col] = *(ptr++);
             if (precision == 1) {
-				printf("percision is 16\n");
                 qt->table[(row * 8) + col] =
                     (qt->table[(row * 8) + col] << 8) + *(ptr++);
             }
         }
 
-        if (0) {
-            printf("Debugging Quant Table\n");
-            printf("Precision: %d, Id: %d\n", precision, id);
+        if (DEBUG) {
+            debug_print("Debugging Quant Table\n");
+            debug_print("Precision: %dbits, Id: %d\n", 8 + (8 * precision), id);
             for (uint8_t i = 0; i < 64; i++) {
                 printf(" %d ", qt->table[i]);
                 if (((i + 1) % 8) == 0) {
@@ -130,8 +129,8 @@ int32_t dequant_data_unit(QuantTable *qt, int16_t *du) {
         du[(row * 8) + col] = du_copy[i] * qt->table[(row * 8) + col];
     }
 
-    if (0) {
-        printf("dequant data block data unit: %d\n", log_du);
+    if (DEBUG) {
+        debug_print("Dequant data block data unit: %d\n", log_du);
         for (uint8_t i = 0; i < 64; i++) {
             if (i % 8 == 0) {
                 printf("\n");

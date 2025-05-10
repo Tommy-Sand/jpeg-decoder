@@ -1,4 +1,5 @@
 #include "decode.h"
+#include "debug.h"
 
 #include <math.h>
 #include <stdio.h>
@@ -85,7 +86,7 @@ void free_img(Image *img) {
 
 int decode_jpeg_buffer(uint8_t *buf, size_t len, FrameHeader *fh, Image **img) {
     if (fh == NULL) {
-        printf("Frame Header provided is NULL");
+        printf("Frame Header provided is NULL\n");
         return -1;
     }
 
@@ -110,24 +111,24 @@ int decode_jpeg_buffer(uint8_t *buf, size_t len, FrameHeader *fh, Image **img) {
                     break;
 
                 case 0xC0:
-                    printf("DEBUG: SOF Baseline DCT\n");
+                    debug_print("DEBUG: SOF Baseline DCT\n");
                     if (decode_frame_header(BDCT, &ptr, fh) == -1) {
-                        printf("DEBUG: frame header read failed\n");
+                        debug_print("DEBUG: frame header read failed\n");
                         return -1;
                     }
                     print_frame_header(fh);
                     if (img_ == NULL) {
                         img_ = allocate_img(fh);
                         if (!img_) {
-                            printf("Cannot allocate image");
+                            debug_print("Cannot allocate image\n");
                             return -1;
                         }
                     }
                     break;
                 case 0xC1:  //SOF Extended Sequential DCT
-                    printf("DEBUG: SOF Extended Sequential DCT\n");
+                    debug_print("DEBUG: SOF Extended Sequential DCT\n");
                     if (decode_frame_header(ESDCTHC, &ptr, fh) == -1) {
-                        printf("DEBUG: frame header read failed\n");
+                        debug_print("DEBUG: frame header read failed\n");
                         return -1;
                     }
                     print_frame_header(fh);
@@ -140,73 +141,73 @@ int decode_jpeg_buffer(uint8_t *buf, size_t len, FrameHeader *fh, Image **img) {
                     }
                     break;
                 case 0xC2:  //SOF Progressive DCT
-                    printf("DEBUG: SOF Progressive DCT\n");
+                    debug_print("DEBUG: SOF Progressive DCT\n");
                     return -1;
                     break;
                 case 0xC3:  //SOF Lossless Sequential
-                    printf("DEBUG: SOF Lossless DCT\n");
+                    debug_print("DEBUG: SOF Lossless DCT\n");
                     return -1;
                     break;
                 case 0xC5:  //SOF Differential sequential DCT
-                    printf("DEBUG: SOF Differential Sequential DCT\n");
+                    debug_print("DEBUG: SOF Differential Sequential DCT\n");
                     return -1;
                     break;
                 case 0xC6:  //SOF Differential progressive DCT
-                    printf("DEBUG: SOF Differential Progressive DCT\n");
+                    debug_print("DEBUG: SOF Differential Progressive DCT\n");
                     return -1;
                     break;
                 case 0xC7:  //SOF Differential lossless (sequential)
-                    printf("DEBUG: SOF Differential lossless DCT\n");
+                    debug_print("DEBUG: SOF Differential lossless DCT\n");
                     return -1;
                     break;
 
                 case 0xC8:  //SOF Reserved for JPEG extensions
-                    printf("DEBUG: SOF Reserved for JPEG extensions\n");
+                    debug_print("DEBUG: SOF Reserved for JPEG extensions\n");
                     return -1;
                     break;
                 case 0xC9:  //SOF Extended sequential DCT
-                    printf("DEBUG: SOF Extended sequential DCT\n");
+                    debug_print("DEBUG: SOF Extended sequential DCT\n");
                     return -1;
                     break;
                 case 0xCA:  //SOF Progressive DCT
-                    printf("DEBUG: SOF Progressive DCT\n");
+                    debug_print("DEBUG: SOF Progressive DCT\n");
                     return -1;
                     break;
                 case 0xCB:  //SOF Lossless (sequential)
-                    printf("SOF Lossless (sequential)\n");
+                    debug_print("SOF Lossless (sequential)\n");
                     return -1;
                     break;
 
                 case 0xCD:  //SOF Differential sequential DCT
-                    printf("DEBUG: SOF Differential sequential DCT\n");
+                    debug_print("DEBUG: SOF Differential sequential DCT\n");
                     return -1;
                     break;
                 case 0xCE:  //SOF Differential progressive DCT
-                    printf("DEBUG: SOF Differential progressive DCT\n");
+                    debug_print("DEBUG: SOF Differential progressive DCT\n");
                     return -1;
                     break;
                 case 0xCF:  //SOF Differential lossless (sequential)
-                    printf("DEBUG: SOF Differential lossless\n");
+                    debug_print("DEBUG: SOF Differential lossless\n");
                     return -1;
                     break;
 
                 case 0xC4:  //Define Huffman table(s)
-                    printf("DEBUG: Define Huffman Table(s)\n");
+                    debug_print("DEBUG: Define Huffman Table(s)\n");
                     if (!init_hts) {
                         if (new_huff_tables(fh->process, &hts) == -1) {
-                            printf("DEBUG: new_huff_tables Failed\n");
+                            debug_print("DEBUG: new_huff_tables failed\n");
                             return -1;
                         }
                         init_hts = true;
                     }
                     if (decode_huff_tables(&ptr, &hts) != 0) {
-                        printf("DEBUG: Huff Table read failed\n");
+                        debug_print("DEBUG: Huff Table read failed\n");
                         return -1;
                     }
                     break;
 
                 case 0xCC:  //Define arithmetic coding conditioning(s)
-                    printf("DEBUG: Define Arithmetic coding conditioning(s)\n");
+                    debug_print("DEBUG: Define Arithmetic coding conditioning(s)\n");
                     break;
 
                 //For D0-D7 Restart with modulo 8 count “m”
@@ -218,63 +219,63 @@ int decode_jpeg_buffer(uint8_t *buf, size_t len, FrameHeader *fh, Image **img) {
                 case 0xD5:
                 case 0xD6:
                 case 0xD7:
-                    printf("DEBUG: Restart marker\n");
+                    debug_print("DEBUG: Restart marker\n");
                     break;
                 case 0xD8:  //SOI
-                    printf("DEBUG: SOI\n");
+                    debug_print("DEBUG: SOI\n");
                     break;
                 case 0xD9:  //EOI
-                    printf("DEBUG: EOI\n");
+                    debug_print("DEBUG: EOI\n");
                     //return 0;
                     EOI = true;
                     break;
                 case 0xDA:  //SOS
-                    printf("DEBUG: SOS\n");
+                    debug_print("DEBUG: SOS\n");
 					//print_huff_tables(&hts);
 
                     if (decode_scan_header(&ptr, &sh) != 0) {
-                        printf("DEBUG: Scan Header read failed\n");
+                        debug_print("DEBUG: Scan Header read failed\n");
                         return -1;
                     }
 
                     print_scan_header(&sh);
                     if (!init_qts) {
-                        printf(
+                        debug_print(
                             "DEBUG: Could not decode scan no quantization table provided\n"
                         );
                         return -1;
                     }
                     if (decode_scan(&ptr, img_, fh, &sh, &hts, &qts, ri) != 0) {
-                        printf("DEBUG: Decode Scan failed\n");
+                        debug_print("DEBUG: Decode Scan failed\n");
                         return -1;
                     }
                     break;
                 case 0xDB:  //Define Quant Table
-                    printf("DEBUG: Definition of quant table\n");
+                    debug_print("DEBUG: Definition of quant table\n");
                     if (decode_quant_table(&ptr, &qts) == -1) {
-                        printf("DEBUG: Quant Table read failed\n");
+                        debug_print("DEBUG: Quant Table read failed\n");
                     }
                     init_qts = true;
                     break;
                 case 0xDC:  //Define number of lines
-                    printf("DEBUG: Defined Number of lines\n");
+                    debug_print("DEBUG: Defined Number of lines\n");
                     if (decode_number_of_lines(&ptr, fh) != 0) {
-                        printf("DEBUG: Number of Lines read fialed\n");
+                        debug_print("DEBUG: Number of Lines read fialed\n");
                     }
                     break;
                 case 0xDD:  //Define restart interval
-                    printf("DEBUG: Define restart interval\n");
+                    debug_print("DEBUG: Define restart interval\n");
                     if (decode_restart_interval(&ptr, &ri) != 0) {
-                        printf("DEBUG: Restart Interval read failed\n");
+                        debug_print("DEBUG: Restart Interval read failed\n");
                         return -1;
                     }
 
                     break;
                 case 0xDE:  //Define Hierarchical Progression
-                    printf("DEBUG: Hierarchical progression\n");
+                    debug_print("DEBUG: Hierarchical progression\n");
                     break;
                 case 0xDF:  //Expand reference components
-                    printf("DEBUG: Expand reference components\n");
+                    debug_print("DEBUG: Expand reference components\n");
                     break;
 
                 //For E0-EF Reserved for Application segment
@@ -294,7 +295,7 @@ int decode_jpeg_buffer(uint8_t *buf, size_t len, FrameHeader *fh, Image **img) {
                 case 0xED:
                 case 0xEE:
                 case 0xEF:
-                    printf("DEBUG: APPLICATION Segment\n");
+                    debug_print("DEBUG: APPLICATION Segment\n");
                     read_app_segment(&ptr);
                     break;
 
@@ -313,11 +314,11 @@ int decode_jpeg_buffer(uint8_t *buf, size_t len, FrameHeader *fh, Image **img) {
                 case 0xFB:
                 case 0xFC:
                 case 0xFD:
-                    printf("DEBUG: Reserved JPEG extensions\n");
+                    debug_print("DEBUG: Reserved JPEG extensions\n");
                     break;
 
                 case 0xFE:  //Comment
-                    printf("DEBUG: Comment\n");
+                    debug_print("DEBUG: Comment\n");
                     break;
             }
         }
@@ -448,7 +449,7 @@ int decode_scan(
                 next_byte_restart_marker(encoded_data, &offset);
             }
         } else if (ret == 2) {
-            printf("End Reached");
+            debug_print("End Reached");
             EOI = 1;
             break;
         }

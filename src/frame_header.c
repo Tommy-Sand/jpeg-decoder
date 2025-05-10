@@ -1,4 +1,5 @@
 #include "frame_header.h"
+#include "debug.h"
 
 #include <math.h>
 #include <stdio.h>
@@ -59,18 +60,18 @@ int32_t decode_frame_header(
         c->y = y;
     }
 
-    if (0) {
-        printf("Percision: %d\n", fh->precision);
-        printf("Y: %d\n", fh->Y);
-        printf("X: %d\n", fh->X);
-        printf("number of components: %d\n", fh->ncs);
+    if (DEBUG) {
+        debug_print("Percision: %d\n", fh->precision);
+        debug_print("Y: %d\n", fh->Y);
+        debug_print("X: %d\n", fh->X);
+        debug_print("number of components: %d\n", fh->ncs);
         for (uint8_t i = 0; i < fh->ncs; i++) {
-            printf("\tid: %d\n", fh->cs[i].id);
-            printf("\thorizontal sampling factor: %d\n", fh->cs[i].hsf);
-            printf("\tvertical sampling factor: %d\n", fh->cs[i].vsf);
-            printf("\tx: %d\n", fh->cs[i].x);
-            printf("\ty: %d\n", fh->cs[i].y);
-            printf("Quantization table id: %d\n", fh->cs[i].qtid);
+            fprintf(stderr, "\tid: %d\n", fh->cs[i].id);
+            fprintf(stderr, "\thorizontal sampling factor: %d\n", fh->cs[i].hsf);
+            fprintf(stderr, "\tvertical sampling factor: %d\n", fh->cs[i].vsf);
+            fprintf(stderr, "\tx: %d\n", fh->cs[i].x);
+            fprintf(stderr, "\ty: %d\n", fh->cs[i].y);
+            fprintf(stderr, "Quantization table id: %d\n", fh->cs[i].qtid);
         }
     }
 
@@ -103,11 +104,11 @@ int32_t free_frame_header(FrameHeader *fh) {
 }
 
 void print_frame_header(FrameHeader *fh) {
-    if (!fh) {
+    if (!fh || !DEBUG) {
         return;
     }
 
-    printf(
+    fprintf(stderr,
         "Frame Header\n"
         "Precision: %d,\n"
         "X: %d,\n"
@@ -125,13 +126,13 @@ void print_frame_header(FrameHeader *fh) {
 }
 
 void print_component(Component *comp, int len) {
-    if (!comp) {
+    if (!comp || !DEBUG) {
         return;
     }
 
     for (int i = 0; i < len; i++) {
         Component *c = comp + i;
-        printf(
+        fprintf(stderr,
             "    Component: %d,\n"
             "        Horizontal Sampling Factor: %d,\n"
             "        Vertical Sampling Factor: %d,\n"

@@ -1,4 +1,5 @@
 #include "scan_header.h"
+#include "debug.h"
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -39,19 +40,21 @@ void print_scan_header(ScanHeader *sh) {
         return;
     }
 
-    printf(
-        "Scan Header\n"
-        "Start of Spectral Selection: %d\n"
-        "End of Spectral Selection: %d\n"
-        "Successive Approximation pos high: %d\n"
-        "Successive Approximation pos low: %d\n",
-        sh->ss,
-        sh->se,
-        sh->ah,
-        sh->al
-    );
+	if (DEBUG) {
+		fprintf(stderr,
+			"Scan Header\n"
+			"Start of Spectral Selection: %d\n"
+			"End of Spectral Selection: %d\n"
+			"Successive Approximation pos high: %d\n"
+			"Successive Approximation pos low: %d\n",
+			sh->ss,
+			sh->se,
+			sh->ah,
+			sh->al
+		);
 
-    print_image_component(sh->ics, sh->nics);
+		print_image_component(sh->ics, sh->nics);
+	}
 }
 
 void print_image_component(ImageComponent *ics, int len) {
@@ -59,17 +62,19 @@ void print_image_component(ImageComponent *ics, int len) {
         return;
     }
 
-    for (int i = 0; i < len; i++) {
-        ImageComponent *ic = ics + i;
-        printf(
-            "    Image Component: %d\n"
-            "        Scan Selector Component: %d\n"
-            "        DC entropy table: %d\n"
-            "        AC entropy table: %d\n",
-            i,
-            ic->sc,
-            ic->dc,
-            ic->ac
-        );
-    }
+	if (DEBUG) {
+		for (int i = 0; i < len; i++) {
+			ImageComponent *ic = ics + i;
+			fprintf(stderr,
+				"    Image Component: %d\n"
+				"        Scan Selector Component: %d\n"
+				"        DC entropy table: %d\n"
+				"        AC entropy table: %d\n",
+				i,
+				ic->sc,
+				ic->dc,
+				ic->ac
+			);
+		}
+	}
 }
