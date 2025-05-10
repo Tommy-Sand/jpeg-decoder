@@ -1,15 +1,10 @@
-#include <complex.h>
+#include "dct.h"
 #include <string.h>
-#include <stdint.h>
+#include <stdio.h>
+
 #define CLAMP_8(in) ((in > 255.0) ? 255 : ((in < 0.0) ? 0.0 : in))
 #define CLAMP_16(in) ((in > 65535.0) ? 65535.0 : ((in < 0.0) ? 0.0 : in))
 
-void fast_2ddct(int16_t du[64], complex double ret_du[64]);
-void fast_dct(complex double in[8], complex double out[8]);
-void fft(uint8_t len, complex double data[len], uint8_t stride, complex double ret_du[len]);
-
-void fast_2didct(int16_t du[64], uint8_t precision);
-void fast_idct(complex double in[8], complex double out[8]);
 
 void fast_2ddct(int16_t du[64], complex double ret_du[64]) {
     complex double cdu[64] = {0.0};
@@ -157,7 +152,6 @@ void fft(uint8_t len, complex double du[len], uint8_t stride, complex double ret
 //precision: 0 indicates an 8 bit precision level, add 128
 //precision: 1 indicates a 12 bit precision level, add 2048
 void fast_2didct(int16_t du[64], uint8_t precision) {
-	printf("%d\n", precision);
     complex double cdu[64] = {0.0};
     for (uint8_t i = 0; i < 64; i++) {
         cdu[i] = (complex double) du[i];
@@ -211,7 +205,6 @@ void fast_2didct(int16_t du[64], uint8_t precision) {
 		}
 	} else {
 		double level_shift = 2048.0;
-		printf("awodij\n");
 		for (uint8_t j = 0; j < 8; j++) {
 			du[j] = (int16_t) CLAMP_16((0.25 * creal(ret_duy[j * 8])) + level_shift);
 			du[j + 8] =
@@ -267,7 +260,7 @@ void ifct(complex double du[8], complex double ret_du[8]) {
 }
 */
 
-void fast_idct(complex double in[8], complex double out[8]) {
+inline void fast_idct(complex double in[8], complex double out[8]) {
     complex double pass1[8] = {
         in[0],
         0.5 * (0.9807853 + 0.1950903 * I) * (in[1] - I * in[8 - 1]),

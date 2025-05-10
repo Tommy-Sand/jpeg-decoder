@@ -7,7 +7,7 @@
 #include <sys/time.h>
 #include <time.h>
 
-#include "dct.c"
+#include "dct.h"
 
 int write_mcu(Image *img, int16_t (**mcu)[64], FrameHeader *fh);
 int write_data_unit(
