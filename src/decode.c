@@ -382,8 +382,11 @@ int write_data_unit(
     for (uint16_t j = y; j < y + 8; j++) {
         for (uint16_t k = x; k < x + 8; k++) {
 			if (precision) {
+				/* TODO A precision of 12 bits is scaled down to 8 bits.
+				 * This should be changed as we should support 12 bits of
+				 * precision in the viewer */
 				*(*(img->buf + comp) + (j * x_to_mcu) + k) =
-						(uint8_t) ((du[((j - y) * 8) + (k - x)] / 65535.0) * 255.0);
+						(uint8_t) ((du[((j - y) * 8) + (k - x)] / 4096.0) * 255.0);
 			} else {
 				*(*(img->buf + comp) + (j * x_to_mcu) + k) =
 						(uint8_t) du[((j - y) * 8) + (k - x)];
