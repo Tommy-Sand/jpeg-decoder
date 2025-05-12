@@ -3,13 +3,13 @@ BUILD_DIR = ./build/
 
 CC = gcc
 
-FLAGS = -Wall -std=c17 -Wextra
+FLAGS = -Wall -std=c17 -Wextra -O1 
 
-OBJ_FILES = jpeg_decoder.o scan_header.o huff_table.o quant_table.o frame_header.o restart_interval.o decode.o colour_conversion.o
+OBJ_FILES = jpeg_decoder.o scan_header.o huff_table.o quant_table.o frame_header.o restart_interval.o dct.o decode.o colour_conversion.o encode.o
 EXT_LIBS = -lm -lSDL2
 
 jpeg_decoder: $(OBJ_FILES)
-	$(CC) -o $(BUILD_DIR)jpeg_decoder $(BUILD_DIR)jpeg_decoder.o $(BUILD_DIR)scan_header.o $(BUILD_DIR)huff_table.o $(BUILD_DIR)quant_table.o $(BUILD_DIR)frame_header.o $(BUILD_DIR)restart_interval.o $(BUILD_DIR)decode.o $(BUILD_DIR)colour_conversion.o $(EXT_LIBS)
+	$(CC) -o $(BUILD_DIR)jpeg_decoder $(BUILD_DIR)jpeg_decoder.o $(BUILD_DIR)scan_header.o $(BUILD_DIR)huff_table.o $(BUILD_DIR)quant_table.o $(BUILD_DIR)frame_header.o $(BUILD_DIR)restart_interval.o $(BUILD_DIR)dct.o $(BUILD_DIR)decode.o $(BUILD_DIR)colour_conversion.o $(BUILD_DIR)encode.o $(EXT_LIBS)
 
 jpeg_decoder.o:
 	$(CC) -g -c $(FLAGS) -o $(BUILD_DIR)jpeg_decoder.o $(SRC_DIR)jpeg_decoder.c
@@ -31,6 +31,9 @@ restart_interval.o:
 	
 decode.o: 
 	$(CC) -g -c $(FLAGS) -o $(BUILD_DIR)decode.o $(SRC_DIR)decode.c
+
+encode.o: 
+	$(CC) -g -c $(FLAGS) -o $(BUILD_DIR)encode.o $(SRC_DIR)encode.c
 
 dct.o:
 	$(CC) -g -c $(FLAGS) -o $(BUILD_DIR)dct.o $(SRC_DIR)dct.c
