@@ -1,5 +1,4 @@
 #include "decode.h"
-#include "debug.h"
 
 #include <math.h>
 #include <stdio.h>
@@ -9,6 +8,7 @@
 #include <time.h>
 
 #include "dct.h"
+#include "debug.h"
 
 int write_mcu(Image *img, int16_t (**mcu)[64], FrameHeader *fh);
 int write_data_unit(
@@ -18,7 +18,7 @@ int write_data_unit(
     int16_t *du,
     uint32_t x,
     uint32_t y,
-	bool precision
+    bool precision
 );
 int decode_scan(
     uint8_t **encoded_data,
@@ -207,7 +207,9 @@ int decode_jpeg_buffer(uint8_t *buf, size_t len, FrameHeader *fh, Image **img) {
                     break;
 
                 case 0xCC:  //Define arithmetic coding conditioning(s)
-                    debug_print("DEBUG: Define Arithmetic coding conditioning(s)\n");
+                    debug_print(
+                        "DEBUG: Define Arithmetic coding conditioning(s)\n"
+                    );
                     break;
 
                 //For D0-D7 Restart with modulo 8 count “m”
@@ -231,7 +233,7 @@ int decode_jpeg_buffer(uint8_t *buf, size_t len, FrameHeader *fh, Image **img) {
                     break;
                 case 0xDA:  //SOS
                     debug_print("DEBUG: SOS\n");
-					//print_huff_tables(&hts);
+                    //print_huff_tables(&hts);
 
                     if (decode_scan_header(&ptr, &sh) != 0) {
                         debug_print("DEBUG: Scan Header read failed\n");
@@ -363,7 +365,15 @@ int write_mcu(Image *img, int16_t (**mcu)[64], FrameHeader *fh) {
 
                 int16_t *du = *((*(mcu + i)) + ((j * c->hsf) + k));
 
-                write_data_unit(img, i, x_to_mcu, du, x, y, fh->precision == 12);
+                write_data_unit(
+                    img,
+                    i,
+                    x_to_mcu,
+                    du,
+                    x,
+                    y,
+                    fh->precision == 12
+                );
             }
         }
     }
@@ -378,20 +388,22 @@ int write_data_unit(
     int16_t *du,
     uint32_t x,
     uint32_t y,
-	bool precision
+    bool precision
 ) {
+#pragma GCC unroll 8
     for (uint16_t j = y; j < y + 8; j++) {
+#pragma GCC unroll 8
         for (uint16_t k = x; k < x + 8; k++) {
-			if (precision) {
-				/* TODO A precision of 12 bits is scaled down to 8 bits.
+            if (precision) {
+                /* TODO A precision of 12 bits is scaled down to 8 bits.
 				 * This should be changed as we should support 12 bits of
 				 * precision in the viewer */
-				*(*(img->buf + comp) + (j * x_to_mcu) + k) =
-						(uint8_t) ((du[((j - y) * 8) + (k - x)] / 4096.0) * 255.0);
-			} else {
-				*(*(img->buf + comp) + (j * x_to_mcu) + k) =
-						(uint8_t) du[((j - y) * 8) + (k - x)];
-			}
+                *(*(img->buf + comp) + (j * x_to_mcu) + k) =
+                    (uint8_t) ((du[((j - y) * 8) + (k - x)] / 4096.0) * 255.0);
+            } else {
+                *(*(img->buf + comp) + (j * x_to_mcu) + k) =
+                    (uint8_t) du[((j - y) * 8) + (k - x)];
+            }
         }
     }
     return 0;
@@ -530,6 +542,7 @@ int decode_data_unit(
         next_byte(&ptr, offset);
     }
     uint8_t mag = 0;
+#pragma GCC unroll 16
     for (uint8_t i = 0; i < 16; i++) {
         if (dc_huff.symbols[i] == NULL) {
             curr_code =
@@ -568,6 +581,7 @@ int decode_data_unit(
     *pred = dc;
     du[0] = dc;
 
+#pragma GCC unroll 64
     for (uint8_t i = 1; i < 64; i++) {
         curr_code = (*ptr >> (7 - ((*offset)++))) & 0x1;
         if (*offset >= 8) {
@@ -678,7 +692,7 @@ int next_byte(uint8_t **ptr, uint8_t *offset) {
  *      2 byte stuffing
  */
 // TODO Handle possibility of multiple stuffed bytes in a row
-int next_byte_restart_marker(uint8_t **ptr, uint8_t *offset) {
+inline int next_byte_restart_marker(uint8_t **ptr, uint8_t *offset) {
     uint8_t byte = **ptr;
     if (byte == 0xFF) {
         uint8_t n_byte = *(*ptr + 1);
