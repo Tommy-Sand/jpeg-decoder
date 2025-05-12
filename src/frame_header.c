@@ -1,9 +1,10 @@
 #include "frame_header.h"
-#include "debug.h"
 
 #include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
+
+#include "debug.h"
 
 int32_t decode_frame_header(
     Encoding encoding_process,
@@ -67,7 +68,11 @@ int32_t decode_frame_header(
         debug_print("number of components: %d\n", fh->ncs);
         for (uint8_t i = 0; i < fh->ncs; i++) {
             fprintf(stderr, "\tid: %d\n", fh->cs[i].id);
-            fprintf(stderr, "\thorizontal sampling factor: %d\n", fh->cs[i].hsf);
+            fprintf(
+                stderr,
+                "\thorizontal sampling factor: %d\n",
+                fh->cs[i].hsf
+            );
             fprintf(stderr, "\tvertical sampling factor: %d\n", fh->cs[i].vsf);
             fprintf(stderr, "\tx: %d\n", fh->cs[i].x);
             fprintf(stderr, "\ty: %d\n", fh->cs[i].y);
@@ -108,7 +113,8 @@ void print_frame_header(FrameHeader *fh) {
         return;
     }
 
-    fprintf(stderr,
+    fprintf(
+        stderr,
         "Frame Header\n"
         "Precision: %d,\n"
         "X: %d,\n"
@@ -132,7 +138,8 @@ void print_component(Component *comp, int len) {
 
     for (int i = 0; i < len; i++) {
         Component *c = comp + i;
-        fprintf(stderr,
+        fprintf(
+            stderr,
             "    Component: %d,\n"
             "        Horizontal Sampling Factor: %d,\n"
             "        Vertical Sampling Factor: %d,\n"

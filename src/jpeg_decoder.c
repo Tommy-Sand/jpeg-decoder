@@ -8,17 +8,17 @@
 #include <sys/mman.h>
 #include <sys/stat.h>
 #include <sys/types.h>
-#include <unistd.h>
 #include <time.h>
+#include <unistd.h>
 
 #include "colour_conversion.h"
+#include "debug.h"
 #include "decode.h"
 #include "frame_header.h"
 #include "huff_table.h"
 #include "quant_table.h"
 #include "restart_interval.h"
 #include "scan_header.h"
-#include "debug.h"
 
 int display_image(int width, int height, SDL_Surface *image);
 int read_app_segment(uint8_t **encoded_data);
@@ -39,6 +39,7 @@ int main(int argc, char *argv[]) {
 
     Image *img = NULL;
     FrameHeader fh;
+    fh.process = -1;
     if (decode_jpeg_buffer(buf, size, &fh, &img) != 0) {
         fprintf(stderr, "DEBUG: Decoding jpeg buffer failed\n");
         return -1;
@@ -109,7 +110,6 @@ int display_image(int width, int height, SDL_Surface *image) {
         fprintf(stderr, "SDL_CreateWindow failed\n");
         return -1;
     }
-
     SDL_Surface *surface = SDL_GetWindowSurface(window);
     if (SDL_BlitSurface(image, NULL, surface, NULL)) {
         fprintf(stderr, "SDL_BlitSurface failed\n");
@@ -125,9 +125,10 @@ int display_image(int width, int height, SDL_Surface *image) {
                 quit = true;
             }
         }
-		struct timespec request = { 0, 60 * 1000 * 1000 };
-		nanosleep(&request, NULL); 
+        struct timespec request = {0, 60 * 1000 * 1000};
+        nanosleep(&request, NULL);
     }
+    SDL_DestroyWindow(window);
     return 0;
 }
 
@@ -147,13 +148,21 @@ int64_t mmap_file(const char *filename, uint8_t **data) {
 
     void *mmap_ret = mmap(NULL, len, PROT_READ, MAP_SHARED, fd, 0);
     if (mmap_ret == (void *) -1) {
-        fprintf(stderr, "Could not get contents of file, %s\n", strerror(errno));
+        fprintf(
+            stderr,
+            "Could not get contents of file, %s\n",
+            strerror(errno)
+        );
         return -1;
     }
     *data = mmap_ret;
 
     if (close(fd) == -1) {
-        fprintf(stderr, "Could not close file descriptor, %s\n", strerror(errno));
+        fprintf(
+            stderr,
+            "Could not close file descriptor, %s\n",
+            strerror(errno)
+        );
         return -1;
     };
     return len;

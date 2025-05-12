@@ -12,9 +12,9 @@ int new_huff_tables(Encoding process, HuffTables *hts) {
 
     HuffTable *DC = hts->DCAC[0];
     HuffTable *AC = hts->DCAC[1];
-#pragma GCC unroll 4
+    #pragma GCC unroll 4
     for (uint8_t i = 0; i < 4; i++) {
-#pragma GCC unroll 16
+        #pragma GCC unroll 16
         for (uint8_t j = 0; j < 16; j++) {
             (DC + i)->len[j] = 0;
             (AC + i)->len[j] = 0;
@@ -54,7 +54,7 @@ int32_t encoded_huff_tables_len(HuffTables *hts) {
         for (uint8_t j = 0; j < hts->nDCAC; j++) {
             len += 17;
             HuffTable *ht = (hts->DCAC[i]) + j;
-#pragma GCC unroll 16
+            #pragma GCC unroll 16
             for (uint8_t k = 0; k < 16; k++) {
                 len += ht->len[k];
             }
@@ -95,12 +95,12 @@ encode_huff_tables(HuffTables *hts, uint8_t **encoded_data, uint32_t len) {
         for (uint8_t j = 0; j < hts->nDCAC; j++) {
             (*encoded_data)[idx++] = (i << 4) & j;
             HuffTable ht = hts->DCAC[i][j];
-#pragma GCC unroll 16
+            #pragma GCC unroll 16
             for (uint8_t k = 0; k < 16; k++) {
                 (*encoded_data)[idx++] = ht.len[k];
             }
 
-#pragma GCC unroll 16
+            #pragma GCC unroll 16
             for (uint8_t k = 0; k < 16; k++) {
                 for (uint8_t l = 0; l < ht.len[k]; l++) {
                     (*encoded_data)[idx++] = ht.symbols[k][l];
@@ -118,7 +118,7 @@ int32_t encoded_huff_table_len(HuffTable *ht) {
         return -1;
     }
     uint16_t len = 19;
-#pragma GCC unroll 16
+    #pragma GCC unroll 16
     for (uint8_t i = 0; i < 16; i++) {
         len += ht->len[i];
     }
@@ -155,12 +155,12 @@ int32_t encode_huff_table(
     (*encoded_data)[idx++] = (uint8_t) ((uint16_t) lh) && 0xFF;
 
     (*encoded_data)[idx++] = (table_class << 4) & dest_id;
-#pragma GCC unroll 16
+    #pragma GCC unroll 16
     for (uint8_t k = 0; k < 16; k++) {
         (*encoded_data)[idx++] = ht->len[k];
     }
 
-#pragma GCC unroll 16
+    #pragma GCC unroll 16
     for (uint8_t k = 0; k < 16; k++) {
         for (uint8_t l = 0; l < ht->len[k]; l++) {
             (*encoded_data)[idx++] = ht->symbols[k][l];
@@ -192,13 +192,13 @@ int32_t decode_huff_tables(uint8_t **encoded_data, HuffTables *hts) {
 
         HuffTable *ht = hts->DCAC[class] + id;
 
-#pragma GCC unroll 16
+        #pragma GCC unroll 16
         for (uint8_t i = 0; i < 16; i++) {
             ht->len[i] = *(ptr++);
         }
 
         uint16_t code = 0;
-#pragma GCC unroll 16
+        #pragma GCC unroll 16
         for (uint8_t i = 0; i < 16; i++) {
             uint8_t len = ht->len[i];
             uint8_t **symbols = ht->symbols + i;
@@ -280,9 +280,9 @@ int32_t free_huff_tables(HuffTables *hts) {
     }
     HuffTable *DC = hts->DCAC[0];
     HuffTable *AC = hts->DCAC[1];
-#pragma GCC unroll 4
+    #pragma GCC unroll 4
     for (uint8_t i = 0; i < 4; i++) {
-#pragma GCC unroll 16
+        #pragma GCC unroll 16
         for (uint8_t j = 0; j < 16; j++) {
             if (DC[i].symbols[j] != NULL) {
                 free(DC[i].symbols[j]);

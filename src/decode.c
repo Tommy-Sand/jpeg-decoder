@@ -390,9 +390,9 @@ int write_data_unit(
     uint32_t y,
     bool precision
 ) {
-#pragma GCC unroll 8
+    #pragma GCC unroll 8
     for (uint16_t j = y; j < y + 8; j++) {
-#pragma GCC unroll 8
+        #pragma GCC unroll 8
         for (uint16_t k = x; k < x + 8; k++) {
             if (precision) {
                 /* TODO A precision of 12 bits is scaled down to 8 bits.
@@ -542,7 +542,7 @@ int decode_data_unit(
         next_byte(&ptr, offset);
     }
     uint8_t mag = 0;
-#pragma GCC unroll 16
+    #pragma GCC unroll 16
     for (uint8_t i = 0; i < 16; i++) {
         if (dc_huff.symbols[i] == NULL) {
             curr_code =
@@ -581,7 +581,7 @@ int decode_data_unit(
     *pred = dc;
     du[0] = dc;
 
-#pragma GCC unroll 64
+    #pragma GCC unroll 64
     for (uint8_t i = 1; i < 64; i++) {
         curr_code = (*ptr >> (7 - ((*offset)++))) & 0x1;
         if (*offset >= 8) {

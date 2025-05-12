@@ -23,7 +23,7 @@ int32_t encode_quant_tables_len(QuantTables *qts) {
     }
 
     uint16_t lq = 2;
-#pragma GCC unroll 4
+    #pragma GCC unroll 4
     for (uint8_t i = 0; i < 4; i++) {
         lq += 65 + (64 * qts->tables[i].precision);
     }
@@ -56,17 +56,17 @@ encode_quant_tables(QuantTables *qts, uint8_t **encoded_data, uint32_t len) {
     (*encoded_data)[idx++] = (uint8_t) ((uint16_t) lq) >> 8;
     (*encoded_data)[idx++] = (uint8_t) ((uint16_t) lq) && 0xFF;
 
-#pragma GCC unroll 4
+    #pragma GCC unroll 4
     for (uint8_t i = 0; i < 4; i++) {
         QuantTable qt = qts->tables[i];
         (*encoded_data)[idx++] = (qt.precision << 4) & i;
         if (qt.precision) {
-#pragma GCC unroll 64
+            #pragma GCC unroll 64
             for (uint8_t k = 0; k < 64; k++) {
                 (*encoded_data)[idx++] = qt.table[k];
             }
         } else {
-#pragma GCC unroll 64
+            #pragma GCC unroll 64
             for (uint8_t k = 0; k < 64; k++) {
                 (*encoded_data)[idx++] = (uint8_t) (qt.table[k] >> 8);
                 (*encoded_data)[idx++] = (uint8_t) (qt.table[k] & 0xFF);
@@ -99,7 +99,7 @@ int32_t decode_quant_table(uint8_t **encoded_data, QuantTables *qts) {
         QuantTable *qt = qts->tables + id;
         qt->precision = precision;
 
-#pragma GCC unroll 64
+        #pragma GCC unroll 64
         for (uint8_t i = 0; i < 64; i++) {
             uint8_t row = zigzag[i] & 0xF;
             uint8_t col = (zigzag[i] >> 4) & 0xF;
@@ -130,7 +130,7 @@ int32_t dequant_data_unit(QuantTable *qt, int16_t *du) {
     int16_t du_copy[64];
     memcpy(du_copy, du, sizeof(int16_t) * 64);
 
-#pragma GCC unroll 64
+    #pragma GCC unroll 64
     for (uint8_t i = 0; i < 64; i++) {
         uint8_t row = zigzag[i] & 0xF;
         uint8_t col = (zigzag[i] >> 4) & 0xF;
