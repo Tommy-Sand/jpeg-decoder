@@ -18,7 +18,8 @@ int32_t decode_frame_header(
 
     uint16_t len = (*(ptr++)) << 8;
     len += *(ptr++);
-    if (len < 8) {
+    const uint16_t min_len = 8;
+    if (len < min_len) {
         return -1;
     }
 
@@ -54,10 +55,8 @@ int32_t decode_frame_header(
         Component *c = fh->cs + i;
 
         uint16_t x = ((uint16_t) ceil(fh->X * ((float) c->hsf / max_hsf)));
-        //x += x % 8;
         c->x = x;
         uint16_t y = (uint16_t) ceil(fh->Y * ((float) c->vsf / max_vsf));
-        //y += y % 8;
         c->y = y;
     }
 

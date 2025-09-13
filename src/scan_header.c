@@ -5,6 +5,8 @@
 
 #include "debug.h"
 
+// See B.2.3 Scan header syntax in JPEG spec
+// For clarification on decoding process
 int32_t decode_scan_header(uint8_t **encoded_data, ScanHeader *sh) {
     if (encoded_data == NULL || *encoded_data == NULL || sh == NULL) {
         return -1;
@@ -13,12 +15,14 @@ int32_t decode_scan_header(uint8_t **encoded_data, ScanHeader *sh) {
 
     uint16_t len = (*(ptr++)) << 8;
     len += *(ptr++);
-    if (len < 6) {
+    const uint16_t min_len = 6;
+    if (len < min_len) {
         return -1;
     }
 
     sh->nics = *(ptr++);
-    if (sh->nics > 4 || sh->nics == 0) {
+    const uint8_t max_comps = 4;
+    if (sh->nics > max_comps || sh->nics == 0) {
         return -1;
     }
     for (uint8_t i = 0; i < sh->nics; i++) {

@@ -3,7 +3,7 @@ BUILD_DIR = ./build/
 
 CC = gcc
 
-FLAGS = -Wall -std=c17 -Wextra -O1 
+FLAGS = -Wall -std=c17 -Wextra -O0
 
 OBJ_FILES = jpeg_decoder.o scan_header.o huff_table.o quant_table.o frame_header.o restart_interval.o dct.o decode.o colour_conversion.o encode.o
 EXT_LIBS = -lm -lSDL2

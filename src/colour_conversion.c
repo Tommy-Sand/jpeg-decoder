@@ -1,4 +1,6 @@
 #include "colour_conversion.h"
+#include <stdio.h>
+#include "debug.h"
 
 int y_rgb(
     FrameHeader *fh,
@@ -70,6 +72,8 @@ int ycbcr_rgb(
                 *(*(img->buf + 2)
                   + (((uint32_t) (i * vratio2) * x_to_mcu2)
                      + (uint32_t) (hratio2 * j)));
+
+            //debug_print("Y %d Cb %d Cr %d\n", Y, Cb, Cr);
 
             float R = Y + 1.402 * (((float) Cr) - 128.0);
             float G = Y - 0.34414 * (((float) Cb) - 128.0)

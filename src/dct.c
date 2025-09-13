@@ -157,24 +157,20 @@ void fft(
 //precision: 1 indicates a 12 bit precision level, add 2048
 inline void fast_2didct(int16_t du[64], uint8_t precision) {
     double cdu[64] = {0.0};
-    #pragma GCC unroll 64
     for (uint8_t i = 0; i < 64; i++) {
         cdu[i] = (double) du[i];
     }
 
-    #pragma GCC unroll 8
     for (uint8_t i = 0; i < 8; i++) {
         cdu[i] *= 0.707106781;
         cdu[i * 8] *= 0.707106781;
     }
 
-    #pragma GCC unroll 8
     for (uint8_t i = 0; i < 8; i++) {
         fast_idct(cdu + (i * 8));
     }
 
     // transpose
-    #pragma GCC unroll 8
     for (int j = 0; j < 8; j++) {
         for (int k = j + 1; k < 8; k++) {
             double temp = cdu[(8 * j) + k];
@@ -183,7 +179,6 @@ inline void fast_2didct(int16_t du[64], uint8_t precision) {
         }
     }
 
-    #pragma GCC unroll 8
     for (uint8_t k = 0; k < 8; k++) {
         fast_idct(cdu + (k * 8));
     }
@@ -191,9 +186,7 @@ inline void fast_2didct(int16_t du[64], uint8_t precision) {
     // transpose
     double level_shift = 128.0;
     if (!precision) {
-        #pragma GCC unroll 8
         for (uint8_t j = 0; j < 8; j++) {
-            #pragma GCC unroll 8
             for (uint8_t k = 0; k < 8; k++) {
                 du[j + (8 * k)] =
                     (int16_t) CLAMP_8((0.25 * cdu[(j * 8) + k]) + level_shift);
@@ -201,9 +194,7 @@ inline void fast_2didct(int16_t du[64], uint8_t precision) {
         }
     } else {
         double level_shift = 2048.0;
-        #pragma GCC unroll 8
         for (uint8_t j = 0; j < 8; j++) {
-            #pragma GCC unroll 8
             for (uint8_t k = 0; k < 8; k++) {
                 du[j + (8 * k)] =
                     (int16_t) CLAMP_16((0.25 * cdu[(j * 8) + k]) + level_shift);
