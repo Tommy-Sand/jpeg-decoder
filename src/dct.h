@@ -13,4 +13,5 @@ void fft(
 
 void fast_2didct(int16_t du[64], uint8_t precision);
 //void fast_idct(complex double in[8], complex double out[8]);
+void fast_idct_new(float in[8]);
 void fast_idct(double du[8]);

@@ -1,5 +1,6 @@
 #pragma once
 #include <stdint.h>
+#include "bitstream.h"
 
 typedef enum {
     //non differential huffman coding
@@ -43,11 +44,11 @@ typedef struct {
 
 int32_t decode_frame_header(
     Encoding encoding_process,
-    uint8_t **encoded_data,
+    Bitstream *bs,
     FrameHeader *fh
 );
 
-int32_t decode_number_of_lines(uint8_t **encoded_data, FrameHeader *fh);
+int32_t decode_number_of_lines(Bitstream *bs, FrameHeader *fh);
 
 int32_t free_frame_header(FrameHeader *fh);
 

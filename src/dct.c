@@ -156,9 +156,9 @@ void fft(
 //precision: 0 indicates an 8 bit precision level, add 128
 //precision: 1 indicates a 12 bit precision level, add 2048
 inline void fast_2didct(int16_t du[64], uint8_t precision) {
-    double cdu[64] = {0.0};
+    float cdu[64] = {0.0};
     for (uint8_t i = 0; i < 64; i++) {
-        cdu[i] = (double) du[i];
+        cdu[i] = (float) du[i];
     }
 
     for (uint8_t i = 0; i < 8; i++) {
@@ -167,24 +167,24 @@ inline void fast_2didct(int16_t du[64], uint8_t precision) {
     }
 
     for (uint8_t i = 0; i < 8; i++) {
-        fast_idct(cdu + (i * 8));
+        fast_idct_new(cdu + (i * 8));
     }
 
     // transpose
     for (int j = 0; j < 8; j++) {
         for (int k = j + 1; k < 8; k++) {
-            double temp = cdu[(8 * j) + k];
+            float temp = cdu[(8 * j) + k];
             cdu[(8 * j) + k] = cdu[(8 * k) + j];
             cdu[(8 * k) + j] = temp;
         }
     }
 
     for (uint8_t k = 0; k < 8; k++) {
-        fast_idct(cdu + (k * 8));
+        fast_idct_new(cdu + (k * 8));
     }
 
     // transpose
-    double level_shift = 128.0;
+    float level_shift = 128.0;
     if (!precision) {
         for (uint8_t j = 0; j < 8; j++) {
             for (uint8_t k = 0; k < 8; k++) {
@@ -193,7 +193,7 @@ inline void fast_2didct(int16_t du[64], uint8_t precision) {
             }
         }
     } else {
-        double level_shift = 2048.0;
+        float level_shift = 2048.0;
         for (uint8_t j = 0; j < 8; j++) {
             for (uint8_t k = 0; k < 8; k++) {
                 du[j + (8 * k)] =
@@ -291,6 +291,53 @@ inline void fast_idct(double du[8]) {
     du[5] = 2 * cimag(pass3[2]);
     du[6] = 2 * cimag(pass3[1]);
     du[7] = 2 * creal(pass3[2]);
+}
+
+void fast_idct_new(float du[8]) {
+    float tmp_du[8] = {0.0};
+	float tmp_du2[8] = {0.0};
+	float tmp_du3[8] = {0.0};
+
+    // Stage 4
+    //TODO Not sure why this is scaled by sqrt(2)
+    tmp_du[0] = 1.414213562 * du[0]; 
+    tmp_du[1] = du[4];
+    tmp_du[2] = du[2];
+    tmp_du[3] = du[6];
+	tmp_du[4] = 0.5 * (du[1] - du[7]);
+	tmp_du[5] = 0.707106781 * du[3];
+	tmp_du[6] = 0.707106781 * du[5];
+	tmp_du[7] = 0.5 * (du[1] + du[7]);
+
+	// Stage 3
+	tmp_du2[0] = 0.5 * (tmp_du[0] + tmp_du[1]);
+	tmp_du2[1] = 0.5 * (tmp_du[0] - tmp_du[1]);
+	tmp_du2[2] = 0.707106781 * (0.38268343236 * tmp_du[2] + -0.92387953251 * tmp_du[3]);
+	tmp_du2[3] = 0.707106781 * (0.92387953251 * tmp_du[2] + 0.38268343236 * tmp_du[3]);
+	tmp_du2[4] = 0.5 * (tmp_du[4] + tmp_du[6]);
+	tmp_du2[5] = 0.5 * (-tmp_du[5] + tmp_du[7]);
+	tmp_du2[6] = 0.5 * (tmp_du[4] - tmp_du[6]);
+	tmp_du2[7] = 0.5 * (tmp_du[5] + tmp_du[7]);
+
+	// Stage 2
+	tmp_du3[0] = 0.5 * (tmp_du2[0] + tmp_du2[3]);
+	tmp_du3[1] = 0.5 * (tmp_du2[1] + tmp_du2[2]);
+	tmp_du3[2] = 0.5 * (tmp_du2[1] - tmp_du2[2]);
+	tmp_du3[3] = 0.5 * (tmp_du2[0] - tmp_du2[3]);
+	tmp_du3[4] = 0.8314696123 * tmp_du2[4] + -0.55557023302 * tmp_du2[7];
+	tmp_du3[5] = 0.9807852804  * tmp_du2[5] + -0.19509032201 * tmp_du2[6];
+	tmp_du3[6] = 0.19509032201 * tmp_du2[5] + 0.9807852804  * tmp_du2[6];
+	tmp_du3[7] = 0.55557023302 * tmp_du2[4] + 0.8314696123 * tmp_du2[7];
+
+    //TODO Not sure why this is scaled by sqrt(2)
+	du[0] = 1.414213562 * 2 * (tmp_du3[0] + tmp_du3[7]);
+	du[1] = 1.414213562 * 2 * (tmp_du3[1] + tmp_du3[6]);
+	du[2] = 1.414213562 * 2 * (tmp_du3[2] + tmp_du3[5]);
+	du[3] = 1.414213562 * 2 * (tmp_du3[3] + tmp_du3[4]);
+	du[4] = 1.414213562 * 2 * (tmp_du3[3] - tmp_du3[4]);
+	du[5] = 1.414213562 * 2 * (tmp_du3[2] - tmp_du3[5]);
+	du[6] = 1.414213562 * 2 * (tmp_du3[1] - tmp_du3[6]);
+	du[7] = 1.414213562 * 2 * (tmp_du3[0] - tmp_du3[7]);
 }
 
 // This original function is kept commented out to serve as a

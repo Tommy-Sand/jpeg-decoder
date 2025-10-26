@@ -1,3 +1,4 @@
+#include <stdio.h>
 #define DEBUG 1
 
 #define debug_print(fmt, ...) \

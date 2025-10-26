@@ -1,5 +1,6 @@
 #pragma once
 #include <stdint.h>
+#include "bitstream.h"
 
 typedef struct {
     uint8_t sc;
@@ -16,7 +17,7 @@ typedef struct {
     uint8_t al;
 } ScanHeader;
 
-int32_t decode_scan_header(uint8_t **encoded_data, ScanHeader *sh);
+int32_t decode_scan_header(Bitstream *bs, ScanHeader *sh);
 
 void print_scan_header(ScanHeader *sh);
 

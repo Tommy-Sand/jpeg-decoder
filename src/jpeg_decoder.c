@@ -16,7 +16,7 @@
 #include "decode.h"
 #include "frame_header.h"
 #include "huff_table.h"
-#include "quant_table.h"
+//#include "quant_table.h"
 #include "restart_interval.h"
 #include "scan_header.h"
 
@@ -37,17 +37,21 @@ int main(int argc, char *argv[]) {
     }
     debug_print("length: %lu\n", size);
 
-    Image *img = NULL;
-    FrameHeader fh;
-    fh.process = -1;
-    if (decode_jpeg_buffer(buf, size, &fh, &img) != 0) {
-        fprintf(stderr, "DEBUG: Decoding jpeg buffer failed\n");
-        return -1;
-    };
 
-    uint16_t width = fh.X;
-    uint16_t height = fh.Y;
+    //for (int z = 0; z < 1000; z++) {
+        Image *img = NULL;
+        FrameHeader fh;
+        fh.process = -1;
+        if (decode_jpeg_buffer(buf, size, &fh, &img) != 0) {
+            fprintf(stderr, "DEBUG: Decoding jpeg buffer failed\n");
+            return -1;
+        };
 
+        uint16_t width = fh.X;
+        uint16_t height = fh.Y;
+
+    //uint16_t width = 2048;
+    //uint16_t height = 1536;
     if (SDL_Init(SDL_INIT_TIMER)) {
         fprintf(stderr, "SDL_Init failed\n");
         return -1;
@@ -64,42 +68,45 @@ int main(int argc, char *argv[]) {
         fprintf(stderr, "SDL_CreateRGBSurfaceWithFormat failed\n");
         return -1;
     }
-    uint16_t pitch = img_surface->pitch;
-    width = img_surface->w;
-    height = img_surface->h;
-    uint8_t *pixels = img_surface->pixels;
 
-    for (uint32_t i = 0; i < height * pitch; i++) {
-        *(pixels + i) = 0;
-    }
 
-    uint8_t max_hsf = 0;
-    uint8_t max_vsf = 0;
-    for (uint8_t i = 0; i < fh.ncs; i++) {
-        Component c = *(fh.cs + i);
-        if (c.hsf > max_hsf) {
-            max_hsf = c.hsf;
+        uint16_t pitch = img_surface->pitch;
+        width = img_surface->w;
+        height = img_surface->h;
+        uint8_t *pixels = img_surface->pixels;
+
+        for (uint32_t i = 0; i < height * pitch; i++) {
+            *(pixels + i) = 0;
         }
-        if (c.vsf > max_vsf) {
-            max_vsf = c.vsf;
+
+        uint8_t max_hsf = 0;
+        uint8_t max_vsf = 0;
+        for (uint8_t i = 0; i < fh.ncs; i++) {
+            Component c = *(fh.cs + i);
+            if (c.hsf > max_hsf) {
+                max_hsf = c.hsf;
+            }
+            if (c.vsf > max_vsf) {
+                max_vsf = c.vsf;
+            }
         }
-    }
 
-    if (fh.ncs == 1) {
-        y_rgb(&fh, img, pixels, width, height, pitch);
-    } else if (fh.ncs == 3) {
-        ycbcr_rgb(&fh, img, pixels, width, height, pitch);
-    } else if (fh.ncs == 4) {
-        yccb_rgb(&fh, img, pixels, width, height, pitch);
-    }
-    free_img(img);
+        if (fh.ncs == 1) {
+            y_rgb(&fh, img, pixels, width, height, pitch);
+        } else if (fh.ncs == 3) {
+            ycbcr_rgb(&fh, img, pixels, width, height, pitch);
+        } else if (fh.ncs == 4) {
+            yccb_rgb(&fh, img, pixels, width, height, pitch);
+        }
+        free_img(img);
 
+        free_frame_header(&fh);
+    //}
     display_image(width, height, img_surface);
     SDL_FreeSurface(img_surface);
     SDL_Quit();
 
     munmap(buf, size);
-    free_frame_header(&fh);
     return 0;
 }
 

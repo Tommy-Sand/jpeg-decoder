@@ -8,28 +8,22 @@
 
 int32_t decode_frame_header(
     Encoding encoding_process,
-    uint8_t **encoded_data,
+    Bitstream *bs,
     FrameHeader *fh
 ) {
-    if (encoded_data == NULL || *encoded_data == NULL || fh == NULL) {
-        return -1;
-    }
-    uint8_t *ptr = *encoded_data;
-
-    uint16_t len = (*(ptr++)) << 8;
-    len += *(ptr++);
+    uint16_t len = (next_byte(bs) << 8) + next_byte(bs);
     const uint16_t min_len = 8;
     if (len < min_len) {
         return -1;
     }
 
     fh->process = encoding_process;
-    fh->precision = (*(ptr++));
-    fh->Y = (*(ptr++)) << 8;
-    fh->Y += *(ptr++);
-    fh->X = (*(ptr++)) << 8;
-    fh->X += *(ptr++);
-    fh->ncs = *(ptr++);
+    fh->precision = next_byte(bs);
+    fh->Y = next_byte(bs) << 8;
+    fh->Y += next_byte(bs);
+    fh->X = next_byte(bs) << 8;
+    fh->X += next_byte(bs);
+    fh->ncs = next_byte(bs);
     if ((fh->ncs == 0) || (fh->ncs * 3 != len - 8)) {
         //No components no image
         return -1;
@@ -40,16 +34,17 @@ int32_t decode_frame_header(
     for (uint8_t i = 0; i < fh->ncs; i++) {
         Component *c = fh->cs + i;
 
-        c->id = *(ptr++);
-        c->hsf = (*ptr) >> 4;
+        c->id = next_byte(bs);
+
+        c->hsf = get_byte(bs) >> 4;
         if (c->hsf > max_hsf) {
             max_hsf = c->hsf;
         }
-        c->vsf = (*(ptr++)) & 0xF;
+        c->vsf = next_byte(bs) & 0xF;
         if (c->vsf > max_vsf) {
             max_vsf = c->vsf;
         }
-        c->qtid = *(ptr++);
+        c->qtid = next_byte(bs);
     }
     for (uint8_t i = 0; i < fh->ncs; i++) {
         Component *c = fh->cs + i;
@@ -59,43 +54,22 @@ int32_t decode_frame_header(
         uint16_t y = (uint16_t) ceil(fh->Y * ((float) c->vsf / max_vsf));
         c->y = y;
     }
-
-    if (DEBUG) {
-        debug_print("Percision: %d\n", fh->precision);
-        debug_print("Y: %d\n", fh->Y);
-        debug_print("X: %d\n", fh->X);
-        debug_print("number of components: %d\n", fh->ncs);
-        for (uint8_t i = 0; i < fh->ncs; i++) {
-            fprintf(stderr, "\tid: %d\n", fh->cs[i].id);
-            fprintf(
-                stderr,
-                "\thorizontal sampling factor: %d\n",
-                fh->cs[i].hsf
-            );
-            fprintf(stderr, "\tvertical sampling factor: %d\n", fh->cs[i].vsf);
-            fprintf(stderr, "\tx: %d\n", fh->cs[i].x);
-            fprintf(stderr, "\ty: %d\n", fh->cs[i].y);
-            fprintf(stderr, "Quantization table id: %d\n", fh->cs[i].qtid);
-        }
-    }
-
-    *encoded_data = ptr;
     return 0;
 }
 
-int32_t decode_number_of_lines(uint8_t **encoded_data, FrameHeader *fh) {
+int32_t decode_number_of_lines(Bitstream *bs, FrameHeader *fh) {
     if (fh == NULL) {
         return -1;
     }
-    uint8_t *ptr = *encoded_data;
-    uint16_t len = (*(ptr++)) << 8;
-    len += (*(ptr++));
+
+    uint16_t len = next_byte(bs) << 8;
+    len += next_byte(bs);
     if (len != 4) {
         return -1;
     }
 
-    fh->Y = (*(ptr++)) << 8;
-    fh->Y += (*(ptr++));
+    fh->Y = next_byte(bs) << 8;
+    fh->Y += next_byte(bs);
 
     return 0;
 }
