@@ -680,10 +680,6 @@ int decode_data_unit(
         curr_code = (curr_code << 1) + next_bit(bs);
     }
     int16_t dc = next_bit_size(bs, mag);
-    //int16_t dc = 0;
-    //for (uint8_t j = 0; j < mag; j++) {
-    //    dc = (dc << 1) + next_bit(bs);
-    //}
 
     if (dc < (1 << (mag - 1))) {
         dc += -1 - ((1 << mag) - 2);
@@ -708,12 +704,6 @@ int decode_data_unit(
         uint8_t size = mag % 16;
         uint8_t run = (mag >> 4) & 0xF;
 
-        //if (mag == 0xF0) {
-        //    i += (0x10 - 1);
-        //    continue;
-        //} else {
-        //    i += run;
-        //}
         i += run;
         if (mag == 0x00) {
             break;
@@ -722,10 +712,6 @@ int decode_data_unit(
         }
 
         int16_t amp = next_bit_size(bs, size);
-        //int16_t amp = 0;
-        //for (uint8_t j = 0; j < size; j++) {
-        //    amp = (amp << 1) + next_bit(bs);
-        //}
 
         if (amp < (1 << (size - 1))) {
             amp += -(1 << size) + 1;
