@@ -30,6 +30,13 @@ int main(int argc, char *argv[]) {
         return -1;
     }
 
+    if (SDL_Init(SDL_INIT_TIMER)) {
+        fprintf(stderr, "SDL_Init failed\n");
+        return -1;
+    }
+
+    //uint16_t width = 2048;
+    //uint16_t height = 1536;
     uint8_t *buf;
     int64_t size = mmap_file(argv[1], &buf);
     if (size == -1) {
@@ -49,26 +56,17 @@ int main(int argc, char *argv[]) {
 
         uint16_t width = fh.X;
         uint16_t height = fh.Y;
-
-    //uint16_t width = 2048;
-    //uint16_t height = 1536;
-    if (SDL_Init(SDL_INIT_TIMER)) {
-        fprintf(stderr, "SDL_Init failed\n");
-        return -1;
-    }
-
-    SDL_Surface *img_surface = SDL_CreateRGBSurfaceWithFormat(
-        0,
-        width,
-        height,
-        24,
-        SDL_PIXELFORMAT_RGB24
-    );
-    if (!img_surface) {
-        fprintf(stderr, "SDL_CreateRGBSurfaceWithFormat failed\n");
-        return -1;
-    }
-
+        SDL_Surface *img_surface = SDL_CreateRGBSurfaceWithFormat(
+            0,
+            width,
+            height,
+            24,
+            SDL_PIXELFORMAT_RGB24
+        );
+        if (!img_surface) {
+            fprintf(stderr, "SDL_CreateRGBSurfaceWithFormat failed\n");
+            return -1;
+        }
 
         uint16_t pitch = img_surface->pitch;
         width = img_surface->w;

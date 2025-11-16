@@ -59,21 +59,14 @@ int ycbcr_rgb(
         c.x + ((c.x % (8 * c.hsf)) ? (8 * c.hsf - (c.x % (8 * c.hsf))) : 0);
 
     for (uint32_t i = 0; i < height; i++) {
-        for (uint32_t j = 0; j < width; j++) {
-            uint8_t Y =
-                *(*(img->buf)
-                  + (((uint32_t) (i * vratio0) * x_to_mcu0)
-                     + (uint32_t) (hratio0 * j)));
-            uint8_t Cb =
-                *(*(img->buf + 1)
-                  + (((uint32_t) (i * vratio1) * x_to_mcu1)
-                     + (uint32_t) (hratio1 * j)));
-            uint8_t Cr =
-                *(*(img->buf + 2)
-                  + (((uint32_t) (i * vratio2) * x_to_mcu2)
-                     + (uint32_t) (hratio2 * j)));
+        uint8_t* Y_row = *img->buf + ((uint32_t) (i * vratio0) * x_to_mcu0);
+        uint8_t* Cb_row = *(img->buf + 1) + ((uint32_t) (i * vratio1) * x_to_mcu1);
+        uint8_t* Cr_row = *(img->buf + 2) + ((uint32_t) (i * vratio2) * x_to_mcu2);
 
-            //debug_print("Y %d Cb %d Cr %d\n", Y, Cb, Cr);
+        for (uint32_t j = 0; j < width; j++) {
+            uint8_t Y = *(Y_row + (uint32_t) (hratio0 * j));
+            uint8_t Cb = *(Cb_row + (uint32_t) (hratio1 * j));
+            uint8_t Cr = *(Cr_row + (uint32_t) (hratio2 * j));
 
             float R = Y + 1.402 * (((float) Cr) - 128.0);
             float G = Y - 0.34414 * (((float) Cb) - 128.0)

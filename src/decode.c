@@ -464,6 +464,11 @@ int write_mcu(Image *img, int16_t (**mcu)[DU], FrameHeader *fh, ScanHeader *sh) 
                            ? (8 * hsf - (c->x % (8 * hsf)))
                            : 0);
 
+                uint16_t y_to_mcu = (c->y //44
+                    + ((c->y % (8 * vsf))
+                           ? (8 * vsf - (c->y % (8 * vsf)))
+                           : 0));
+
                 //Current mcu that was decoded
                 uint16_t mcu_progress = img->mcu;
 
@@ -482,7 +487,7 @@ int write_mcu(Image *img, int16_t (**mcu)[DU], FrameHeader *fh, ScanHeader *sh) 
 
                 int16_t *du = *((*(mcu + i)) + ((j * hsf) + k));
 
-                debug_print("c->x: %d x_to_mcu: %d x: %d y: %d\n", c->x, x_to_mcu, x, y);
+                debug_print("c->x: %d x_to_mcu: %d y_to_mcu: %d x: %d y: %d\n", c->x, x_to_mcu, y_to_mcu, x, y);
                 debug_print("hsf: %d vsf: %d mcu_progress: %d\n", hsf, vsf, mcu_progress);
                 write_data_unit(
                     img,
@@ -856,17 +861,25 @@ int decode_progressive_scan(
     for (int i = 0; i < sh->nics; i++) {
         block_reads[i] = 0;
     }
+
+    int max_mcus = -1;
     while (!EOI) {
         uint8_t ret = check_marker(bs);
-        if ((ri != 0) && ((mcus_read % ri) == 0) && ret == 1) {
+        if ((ri != 0) && ((mcus_read % ri) == 0)) {
             if (ret == 1) {
                 restart_marker(pred, sh->nics);
                 next_byte_restart_marker(bs);
+            } else {
+                debug_print("restart marker expected, but not found\n");
+                exit(1);
             }
-        } else if (ret == 2) {
+        } else if (max_mcus != -1 && (mcus_read >= max_mcus) && ret != 0) {
             debug_print("End Reached\n");
             EOI = 1;
             break;
+        } else if (mcus_read >= max_mcus) {
+            debug_print("Error reading beyond max mcus\n");
+            exit(1);
         }
         
         uint8_t i = 0;
@@ -886,6 +899,7 @@ int decode_progressive_scan(
                     break;
                 }
             }
+
             if (c == NULL) {
                 return -1;
             }
@@ -905,11 +919,17 @@ int decode_progressive_scan(
             for (uint8_t j = 0; j < vsf; j++) {
                 for (uint8_t k = 0; k < hsf; k++) {
 
-                    uint16_t img_width = width;//44
-                    uint16_t x_to_mcu = (c->x //44
+                    uint16_t img_width = width;
+                    uint16_t x_to_mcu = (c->x
                         + ((c->x % (8 * hsf))
                                ? (8 * hsf - (c->x % (8 * hsf)))
                                : 0)) / 8;
+                    uint16_t y_to_mcu = (c->y
+                        + ((c->y % (8 * vsf))
+                               ? (8 * vsf - (c->y % (8 * vsf)))
+                               : 0)) / 8;
+
+                    max_mcus = x_to_mcu * y_to_mcu;
 
                     uint16_t x = ((mcus_read * hsf) + k) % img_width;
                     uint16_t y = (((mcus_read * hsf + k) / img_width) * vsf) + j;
@@ -1060,7 +1080,7 @@ int decode_progressive_ac(
     for (uint8_t i = sh->ss; i <= sh->se; i++) {
         uint8_t mag = 0;
         int16_t curr_code = next_bit(bs);
-        debug_print("huffman: %d", curr_code);
+        debug_print("huffman: %d\n", curr_code);
         for (uint8_t j = 0; j < 16; j++) {
             if (ac_huff.symbols[j] == NULL) {
                 curr_code = (curr_code << 1) + next_bit(bs);
@@ -1112,6 +1132,7 @@ int decode_progressive_ac(
         }
 
         if (run < 0xF && size == 0) {
+            debug_print("additional end of blocks %d\n", eob - 1);
             return eob - 1;
         }
 
@@ -1227,6 +1248,7 @@ int decode_progressive_ac_refine(
                 }
                 debug_print("\n");
 
+                debug_print("additional end of blocks %d\n", eob - 1);
                 return eob - 1;
             } else if (run == 0xF) { //ZRL
                 int j = 0;

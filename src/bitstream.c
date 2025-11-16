@@ -24,7 +24,8 @@ int next_byte_for_bits(Bitstream *bs) {
     if (byte == 0xFF) {
         uint8_t n_byte = *(bs->encoded_data + 1);
         if (n_byte == 0x00) {
-            // Byte is stuffed and we can skip the 00
+            // Byte is stuffed so we skip the 0x00 
+            // after 0xFF
             bs->encoded_data = bs->encoded_data + 2;
             bs->offset = 0;
             return 2;
@@ -46,8 +47,8 @@ int next_byte_for_bits(Bitstream *bs) {
                 bs->offset = 0;
                 return 0;
             } else {
-                debug_print("New marker detected\n");
-                return -1;
+                debug_print("New marker detected %X%X\n", n_byte, nn_byte);
+                //return -1;
             }
             // TODO handle DNL
         }
@@ -87,10 +88,14 @@ uint8_t check_marker(Bitstream *bs) {
         //End of Image
         debug_print("position of end of image 1\n");
         return 2;
+    } else if (byte == 0xFF && (n_byte >= 0xD0 && n_byte <= 0xD7)) {
+        //Restart Interval
+        debug_print("position of restart interval 1\n");
+        return 2;
     } else if (byte == 0xFF && n_byte != 0x00) {
         //Another Marker
         debug_print("position of another marker 1\n");
-        return 0;
+        return 2;
     }
 
     uint8_t nn_byte = *(bs->encoded_data + 2);
@@ -105,35 +110,35 @@ uint8_t check_marker(Bitstream *bs) {
         if (n_byte == 0x00 && nn_byte == 0xFF
             && (nnn_byte >= 0xD0 && nnn_byte <= 0xD7)) {
             //Restart Interval
-            debug_print("position of restart interval 2\n");
+            debug_print("position of restart interval 2 %X%X\n", nn_byte, nnn_byte);
             return 1;
         } else if (n_byte == 0x00 && nn_byte == 0xFF && nnn_byte >= 0xD9) {
             //End Of Image
-            debug_print("position of end of image 2\n");
+            debug_print("position of end of image 2 %X%X\n", nn_byte, nnn_byte);
             return 2;
         } else if (n_byte == 0x00 && nn_byte == 0xFF) {
             //Another Marker
-            debug_print("position of another marker 2\n");
+            debug_print("position of another marker 2 %X%X\n", n_byte, nn_byte);
             return 2;
         }
     } else if (n_byte == 0xFF && (nn_byte >= 0xD0 && nn_byte <= 0xD7)) {
         //Restart Interval
-        debug_print("position of restart interval 3\n");
+        debug_print("position of restart interval 3 %X%X\n", n_byte, nn_byte);
         return 1;
     } else if (n_byte == 0xFF && nn_byte == 0xD9) {
         //End Of Image
-        debug_print("position of end of image 3\n");
+        debug_print("position of end of image 3 %X%X\n", n_byte, nn_byte);
         return 2;
     //TODO Why is commenting this out fix example/imgonline-com-ua-progressive8iLah1czu26m.jpg
     //but not example/progress.jpg
-    //} else if (n_byte == 0xFF && nn_byte != 0x00) {
-        //End of Image
-    //    debug_print("position of another marker 3\n");
-    //    return 2;
+    } else if (n_byte == 0xFF && nn_byte != 0x00) {
+        //Another Marker
+        debug_print("position of another marker 3 %X%X\n", n_byte, nn_byte);
+        return 2;
     } else if (n_byte == 0x00 && nn_byte == 0xFF) {
         //Another Marker
-        debug_print("position of another marker 4\n");
-        return 2;
+        //debug_print("position of another marker 4 %X%X\n", n_byte, nn_byte);
+        //return 2;
     }
     return 0;
 }
