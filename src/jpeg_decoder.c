@@ -20,11 +20,14 @@
 #include "restart_interval.h"
 #include "scan_header.h"
 
+int64_t maxofthree(int64_t, int64_t, int64_t);
+
 int display_image(int width, int height, SDL_Surface *image);
 int read_app_segment(uint8_t **encoded_data);
 int64_t mmap_file(const char *filename, uint8_t **data);
 
 int main(int argc, char *argv[]) {
+    printf("adwuiohawd %d\n", maxofthree(1, 2, 3));
     if (argc < 2) {
         fprintf(stderr, "Need file path\n");
         return -1;
