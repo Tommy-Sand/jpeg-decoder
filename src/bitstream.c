@@ -91,7 +91,7 @@ uint8_t check_marker(Bitstream *bs) {
     } else if (byte == 0xFF && (n_byte >= 0xD0 && n_byte <= 0xD7)) {
         //Restart Interval
         debug_print("position of restart interval 1\n");
-        return 2;
+        return 1;
     } else if (byte == 0xFF && n_byte != 0x00) {
         //Another Marker
         debug_print("position of another marker 1\n");
