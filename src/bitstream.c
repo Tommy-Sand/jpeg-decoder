@@ -100,12 +100,6 @@ uint8_t check_marker(Bitstream *bs) {
 
     uint8_t nn_byte = *(bs->encoded_data + 2);
     if (byte == 0xFF) {
-        if (n_byte >= 0xD0 && n_byte <= 0xD7) {
-            //Restart Interval
-            debug_print("position of restart interval 1\n");
-            return 1;
-        }
-
         uint8_t nnn_byte = *(bs->encoded_data + 3);
         if (n_byte == 0x00 && nn_byte == 0xFF
             && (nnn_byte >= 0xD0 && nnn_byte <= 0xD7)) {
@@ -135,10 +129,6 @@ uint8_t check_marker(Bitstream *bs) {
         //Another Marker
         debug_print("position of another marker 3 %X%X\n", n_byte, nn_byte);
         return 2;
-    } else if (n_byte == 0x00 && nn_byte == 0xFF) {
-        //Another Marker
-        //debug_print("position of another marker 4 %X%X\n", n_byte, nn_byte);
-        //return 2;
     }
     return 0;
 }
