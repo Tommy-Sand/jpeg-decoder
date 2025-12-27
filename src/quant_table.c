@@ -39,7 +39,7 @@ int32_t encode_quant_tables_len(QuantTables *qts) {
     }
 
     uint16_t lq = 2;
-    for (uint8_t i = 0; i < 4; i++) {
+    for (int i = 0; i < 4; i++) {
         lq += 65 + (64 * qts->tables[i].precision);
     }
     return lq;
@@ -71,15 +71,15 @@ encode_quant_tables(QuantTables *qts, uint8_t **encoded_data, uint32_t len) {
     (*encoded_data)[idx++] = (uint8_t) ((uint16_t) lq) >> 8;
     (*encoded_data)[idx++] = (uint8_t) ((uint16_t) lq) && 0xFF;
 
-    for (uint8_t i = 0; i < 4; i++) {
+    for (int i = 0; i < 4; i++) {
         QuantTable qt = qts->tables[i];
         (*encoded_data)[idx++] = (qt.precision << 4) & i;
         if (qt.precision) {
-            for (uint8_t k = 0; k < 64; k++) {
+            for (int k = 0; k < 64; k++) {
                 (*encoded_data)[idx++] = qt.table[k];
             }
         } else {
-            for (uint8_t k = 0; k < 64; k++) {
+            for (int k = 0; k < 64; k++) {
                 (*encoded_data)[idx++] = (uint8_t) (qt.table[k] >> 8);
                 (*encoded_data)[idx++] = (uint8_t) (qt.table[k] & 0xFF);
             }
@@ -96,7 +96,7 @@ int32_t decode_quant_table(Bitstream *bs, QuantTables *qts) {
         return -1;
     }
 
-    for (uint8_t i = 0; i < ((len - 2) / 65); i++) {
+    for (int i = 0; i < ((len - 2) / 65); i++) {
         uint8_t precision = (get_byte(bs) >> 4) & 0xF;
         uint8_t id = next_byte(bs) & 0xF;
         if (id > 3) {
@@ -105,7 +105,7 @@ int32_t decode_quant_table(Bitstream *bs, QuantTables *qts) {
         QuantTable *qt = qts->tables + id;
         qt->precision = precision;
 
-        for (uint8_t j = 0; j < 64; j++) {
+        for (int j = 0; j < 64; j++) {
             qt->table[zigzag[j]] = next_byte(bs);
             if (precision == 1) {
                 qt->table[zigzag[j]] =
@@ -116,7 +116,7 @@ int32_t decode_quant_table(Bitstream *bs, QuantTables *qts) {
         if (DEBUG) {
             debug_print("Debugging Quant Table\n");
             debug_print("Precision: %dbits, Id: %d\n", 8 + (8 * precision), id);
-            for (uint8_t i = 0; i < 64; i++) {
+            for (int i = 0; i < 64; i++) {
                 debug_print(" %d ", qt->table[i]);
                 if (((i + 1) % 8) == 0) {
                     debug_print("\n");
@@ -132,14 +132,14 @@ int32_t dequant_data_unit(QuantTable *qt, int16_t *du) {
     int16_t du_copy[64];
     memcpy(du_copy, du, sizeof(int16_t) * 64);
 
-    for (uint8_t i = 0; i < 64; i++) {
+    for (int i = 0; i < 64; i++) {
         uint8_t temp = zigzag[i];
         du[temp] = du_copy[i] * qt->table[temp];
     }
 
     if (0) {
         debug_print("Dequant data block data unit: %d\n", log_du);
-        for (uint8_t i = 0; i < 64; i++) {
+        for (int i = 0; i < 64; i++) {
             if (i % 8 == 0) {
                 printf("\n");
             }

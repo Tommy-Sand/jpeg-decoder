@@ -20,7 +20,7 @@ int32_t decode_scan_header(Bitstream *bs, ScanHeader *sh) {
     if (sh->nics > max_comps || sh->nics == 0) {
         return -1;
     }
-    for (uint8_t i = 0; i < sh->nics; i++) {
+    for (int i = 0; i < sh->nics; i++) {
         (sh->ics[i]).sc = next_byte(bs);
         (sh->ics[i]).dc = get_byte(bs) >> 4;
         (sh->ics[i]).ac = next_byte(bs) & 0xF;

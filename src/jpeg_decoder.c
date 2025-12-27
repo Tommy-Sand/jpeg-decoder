@@ -82,7 +82,7 @@ int main(int argc, char *argv[]) {
 
         uint8_t max_hsf = 0;
         uint8_t max_vsf = 0;
-        for (uint8_t i = 0; i < fh.ncs; i++) {
+        for (int i = 0; i < fh.ncs; i++) {
             Component c = *(fh.cs + i);
             if (c.hsf > max_hsf) {
                 max_hsf = c.hsf;

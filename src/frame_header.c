@@ -31,7 +31,7 @@ int32_t decode_frame_header(
     fh->cs = (Component *) malloc(fh->ncs * sizeof(Component));
     uint8_t max_hsf = 0;
     uint8_t max_vsf = 0;
-    for (uint8_t i = 0; i < fh->ncs; i++) {
+    for (int i = 0; i < fh->ncs; i++) {
         Component *c = fh->cs + i;
 
         c->id = next_byte(bs);
@@ -46,7 +46,7 @@ int32_t decode_frame_header(
         }
         c->qtid = next_byte(bs);
     }
-    for (uint8_t i = 0; i < fh->ncs; i++) {
+    for (int i = 0; i < fh->ncs; i++) {
         Component *c = fh->cs + i;
 
         uint16_t x = ((uint16_t) ceil(fh->X * ((float) c->hsf / max_hsf)));

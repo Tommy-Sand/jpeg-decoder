@@ -8,17 +8,17 @@
 
 void fast_2ddct(int16_t du[64], complex double ret_du[64]) {
     complex double cdu[64] = {0.0};
-    for (uint8_t i = 0; i < 64; i++) {
+    for (int i = 0; i < 64; i++) {
         cdu[i] = (complex double) (du[i] - 128);
     }
 
     complex double ret_dux[64] = {0};
-    for (uint8_t i = 0; i < 8; i++) {
+    for (int i = 0; i < 8; i++) {
         fast_dct(cdu + (i * 8), ret_dux + (i * 8));
     }
 
     complex double in_duy[64] = {0};
-    for (uint8_t j = 0; j < 8; j++) {
+    for (int j = 0; j < 8; j++) {
         in_duy[j * 8] = ret_dux[j];
         in_duy[(j * 8) + 1] = ret_dux[j + 8];
         in_duy[(j * 8) + 2] = ret_dux[j + 16];
@@ -30,11 +30,11 @@ void fast_2ddct(int16_t du[64], complex double ret_du[64]) {
     }
 
     complex double ret_duy[64] = {0};
-    for (uint8_t k = 0; k < 8; k++) {
+    for (int k = 0; k < 8; k++) {
         fast_dct(in_duy + (k * 8), ret_duy + (k * 8));
     }
 
-    for (uint8_t j = 0; j < 8; j++) {
+    for (int j = 0; j < 8; j++) {
         ret_du[j] = creal(ret_duy[j * 8]);
         ret_du[j + 8] = creal(ret_duy[(j * 8) + 1]);
         ret_du[j + 16] = creal(ret_duy[(j * 8) + 2]);
@@ -45,10 +45,10 @@ void fast_2ddct(int16_t du[64], complex double ret_du[64]) {
         ret_du[j + 56] = creal(ret_duy[(j * 8) + 7]);
     }
 
-    for (uint8_t i = 0; i < 64; i++) {
+    for (int i = 0; i < 64; i++) {
         ret_du[i] = (complex double) (0.25 * du[i]);
     }
-    for (uint8_t i = 0; i < 8; i++) {
+    for (int i = 0; i < 8; i++) {
         ret_du[i] *= 0.707106781;
         ret_du[i * 8] *= 0.707106781;
     }
@@ -58,7 +58,7 @@ void correct_fast_dct(complex double in[8], complex double out[8]) {
     const float PI = 3.14159265358979323846;
 
     complex double temp_du[8];
-    for (uint8_t i = 0; i < 4; i++) {
+    for (int i = 0; i < 4; i++) {
         temp_du[i] = in[2 * i];
         temp_du[4 + i] = in[16 - 2 * (4 + i) - 1];
     }
@@ -66,11 +66,11 @@ void correct_fast_dct(complex double in[8], complex double out[8]) {
     complex double fft_ret_du[8];
     fft(8, temp_du, 1, fft_ret_du);
 
-    for (uint8_t i = 0; i < 8; i++) {
+    for (int i = 0; i < 8; i++) {
         fft_ret_du[i] *= 2 * cexp(-I * PI * i / 16.0);
     }
 
-    for (uint8_t i = 0; i < 5; i++) {
+    for (int i = 0; i < 5; i++) {
         out[i] = creal(fft_ret_du[i]);
         if (i > 0) {
             out[8 - i] = -cimag(fft_ret_du[i]);
@@ -82,13 +82,13 @@ void fast_dct(complex double in[8], complex double out[8]) {
     const float PI = 3.14159265358979323846;
 
     complex double temp_du[8];
-    for (uint8_t i = 0; i < 4; i++) {
+    for (int i = 0; i < 4; i++) {
         temp_du[i] = in[2 * i];
         temp_du[4 + i] = in[16 - 2 * (4 + i) - 1];
     }
 
     complex double packed[4];
-    for (uint8_t i = 0; i < 4; i++) {
+    for (int i = 0; i < 4; i++) {
         packed[i] = temp_du[2 * i] + I * temp_du[2 * i + 1];
     }
 
@@ -96,7 +96,7 @@ void fast_dct(complex double in[8], complex double out[8]) {
     fft(4, packed, 1, fft_ret_du);
 
     complex double unpacked_du[8];
-    for (uint8_t i = 1; i < 3; i++) {
+    for (int i = 1; i < 3; i++) {
         complex double temp1 = 0.5 * (fft_ret_du[i] + conj(fft_ret_du[4 - i]));
         complex double temp2 = 0.5 * I * cexp(I * -2.0 * i * PI / 8)
             * (fft_ret_du[i] - conj(fft_ret_du[4 - i]));
@@ -106,11 +106,11 @@ void fast_dct(complex double in[8], complex double out[8]) {
     unpacked_du[2] = creal(fft_ret_du[2]) - I * cimag(fft_ret_du[2]);
     unpacked_du[4] = creal(fft_ret_du[0]) - cimag(fft_ret_du[0]);
 
-    for (uint8_t i = 0; i < 5; i++) {
+    for (int i = 0; i < 5; i++) {
         unpacked_du[i] = 2 * cexp(-I * PI * i / 16) * unpacked_du[i];
     }
 
-    for (uint8_t i = 0; i < 5; i++) {
+    for (int i = 0; i < 5; i++) {
         out[i] = creal(unpacked_du[i]);
         if (i > 0) {
             out[8 - i] = -cimag(unpacked_du[i]);
@@ -139,7 +139,7 @@ void fft(
 
         complex double copy_du2[len];
         memcpy(copy_du2, ret_du, sizeof(complex double) * len);
-        for (uint8_t i = 0; i < len / 2; i++) {
+        for (int i = 0; i < len / 2; i++) {
             complex double temp_ret = ret_du[len / 2 + i];
             complex double temp1 =
                 cexp((I * PI * (float) (-2 * i) / (float) len));
@@ -147,7 +147,7 @@ void fft(
             temp_ret_du[i] = ret_du[i] + temp2;
             temp_ret_du[len / 2 + i] = ret_du[i] - temp2;
         }
-        for (uint8_t i = 0; i < len; i++) {
+        for (int i = 0; i < len; i++) {
             ret_du[i] = temp_ret_du[i];
         }
     }
@@ -157,16 +157,16 @@ void fft(
 //precision: 1 indicates a 12 bit precision level, add 2048
 inline void fast_2didct(int16_t du[64], uint8_t precision) {
     float cdu[64] = {0.0};
-    for (uint8_t i = 0; i < 64; i++) {
+    for (int i = 0; i < 64; i++) {
         cdu[i] = (float) du[i];
     }
 
-    for (uint8_t i = 0; i < 8; i++) {
+    for (int i = 0; i < 8; i++) {
         cdu[i] *= 0.707106781;
         cdu[i * 8] *= 0.707106781;
     }
 
-    for (uint8_t i = 0; i < 8; i++) {
+    for (int i = 0; i < 8; i++) {
         fast_idct_new(cdu + (i * 8));
     }
 
@@ -179,23 +179,23 @@ inline void fast_2didct(int16_t du[64], uint8_t precision) {
         }
     }
 
-    for (uint8_t k = 0; k < 8; k++) {
+    for (int k = 0; k < 8; k++) {
         fast_idct_new(cdu + (k * 8));
     }
 
     // transpose
     float level_shift = 128.0;
     if (!precision) {
-        for (uint8_t j = 0; j < 8; j++) {
-            for (uint8_t k = 0; k < 8; k++) {
+        for (int j = 0; j < 8; j++) {
+            for (int k = 0; k < 8; k++) {
                 du[j + (8 * k)] =
                     (int16_t) CLAMP_8((0.25 * cdu[(j * 8) + k]) + level_shift);
             }
         }
     } else {
         float level_shift = 2048.0;
-        for (uint8_t j = 0; j < 8; j++) {
-            for (uint8_t k = 0; k < 8; k++) {
+        for (int j = 0; j < 8; j++) {
+            for (int k = 0; k < 8; k++) {
                 du[j + (8 * k)] =
                     (int16_t) CLAMP_16((0.25 * cdu[(j * 8) + k]) + level_shift);
             }

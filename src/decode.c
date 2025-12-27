@@ -70,7 +70,7 @@ Buffer *allocate_mcus_progressive(FrameHeader *fh) {
     buffer->blocks = (int16_t (**)[DU]) malloc(fh->ncs * sizeof(int16_t (**)[DU]));
     buffer->width = (int16_t *) malloc(fh->ncs * sizeof(int16_t));
     buffer->height = (int16_t *) malloc(fh->ncs * sizeof(int16_t));
-    for (uint8_t i = 0; i < fh->ncs; i++) {
+    for (int i = 0; i < fh->ncs; i++) {
         Component *c = fh->cs + i;
 
         uint16_t x_blocks = (c->x
@@ -103,7 +103,7 @@ Image *allocate_img(FrameHeader *fh) {
         free(img);
         return NULL;
     }
-    for (uint8_t i = 0; i < fh->ncs; i++) {
+    for (int i = 0; i < fh->ncs; i++) {
         Component *c = fh->cs + i;
         uint16_t x_to_mcu = c->x
             + ((c->x % (8 * c->hsf)) ? (8 * c->hsf - (c->x % (8 * c->hsf))) : 0
@@ -128,7 +128,7 @@ Image *allocate_img(FrameHeader *fh) {
 }
 
 void free_img(Image *img) {
-    for (uint8_t i = 0; i < img->n_du; i++) {
+    for (int i = 0; i < img->n_du; i++) {
         free(img->buf[i]);
     }
     free(img->buf);
@@ -434,10 +434,10 @@ int read_app_segment(Bitstream *bs) {
 }
 
 int write_mcu(Image *img, int16_t (**mcu)[DU], FrameHeader *fh, ScanHeader *sh) {
-    for (uint8_t i = 0; i < sh->nics; i++) {
+    for (int i = 0; i < sh->nics; i++) {
         ImageComponent ic = sh->ics[i];
 
-        uint8_t p = 0;
+        int p = 0;
         Component *c = NULL;
         for (/*uint8_t*/ p = 0; p < fh->ncs; p++) {
             c = (fh->cs) + p;
@@ -455,8 +455,8 @@ int write_mcu(Image *img, int16_t (**mcu)[DU], FrameHeader *fh, ScanHeader *sh) 
             hsf = vsf = 1;
         }
 
-        for (uint8_t j = 0; j < vsf; j++) {
-            for (uint8_t k = 0; k < hsf; k++) {
+        for (int j = 0; j < vsf; j++) {
+            for (int k = 0; k < hsf; k++) {
                 //Rounded to the nearest multiple of 8 * c->hsf
                 uint16_t img_width = img->width[p]; //352
                 uint16_t x_to_mcu = c->x //344
@@ -515,8 +515,8 @@ int write_data_unit(
     bool precision
 ) {
     uint8_t *comp_buf = *(img->buf + comp);
-    for (uint16_t j = y; j < y + 8; j++) {
-        for (uint16_t k = x; k < x + 8; k++) {
+    for (uint32_t j = y; j < y + 8; j++) {
+        for (uint32_t k = x; k < x + 8; k++) {
             if (precision) {
                 /* TODO A precision of 12 bits is scaled down to 8 bits.
 				 * This should be changed as we should support 12 bits of
@@ -547,7 +547,7 @@ int decode_scan(
 	 * Read those image components and decode
 	 */
     int16_t pred[sh->nics];
-    for (uint8_t i = 0; i < sh->nics; i++) {
+    for (int i = 0; i < sh->nics; i++) {
         pred[i] = 0;
     }
 
@@ -556,11 +556,11 @@ int decode_scan(
     if (!mcu) {
         return -1;
     }
-    for (uint8_t i = 0; i < sh->nics; i++) {
+    for (int i = 0; i < sh->nics; i++) {
         ImageComponent ic = sh->ics[i];
 
         Component *c = NULL;
-        for (uint8_t j = 0; j < fh->ncs; j++) {
+        for (int j = 0; j < fh->ncs; j++) {
             c = (fh->cs) + j;
             if (c->id == ic.sc) {
                 break;
@@ -588,12 +588,12 @@ int decode_scan(
             break;
         }
 
-        for (uint8_t i = 0; i < sh->nics; i++) {
+        for (int i = 0; i < sh->nics; i++) {
             int16_t(*dus)[DU] = *(mcu + i);
             ImageComponent ic = sh->ics[i];
 
             Component *c = NULL;
-            for (uint8_t j = 0; j < fh->ncs; j++) {
+            for (int j = 0; j < fh->ncs; j++) {
                 c = (fh->cs) + j;
                 if (c->id == ic.sc) {
                     break;
@@ -606,8 +606,8 @@ int decode_scan(
             HuffTable dc = hts->DCAC[0][ic.dc];
             HuffTable ac = hts->DCAC[1][ic.ac];
             QuantTable *qt = qts->tables + c->qtid;
-            for (uint8_t j = 0; j < c->vsf; j++) {
-                for (uint8_t k = 0; k < c->hsf; k++) {
+            for (int j = 0; j < c->vsf; j++) {
+                for (int k = 0; k < c->hsf; k++) {
                     int16_t *du = *(dus + ((j * c->hsf) + k));
                     memset(du, 0, DU * sizeof(int16_t));
                     if (!du) {
@@ -839,7 +839,7 @@ int decode_progressive_scan(
         *(mcu + i) = dus;
     }
 
-    uint32_t mcus_read = 0;
+    int mcus_read = 0;
     img->mcu = 0;
 
     int eob = 0;
@@ -876,7 +876,7 @@ int decode_progressive_scan(
             int16_t (*blocks)[DU] = NULL;
             uint16_t width = 0;
             uint16_t height = 0;
-            for (uint8_t j = 0; j < fh->ncs; j++) {
+            for (int j = 0; j < fh->ncs; j++) {
                 c = (fh->cs) + j;
                 if (c->id == ic.sc) {
                     blocks = *(prog_buf->blocks + j);
@@ -902,8 +902,8 @@ int decode_progressive_scan(
             HuffTable ac = hts->DCAC[1][ic.ac];
             QuantTable *qt = qts->tables + c->qtid;
             
-            for (uint8_t j = 0; j < vsf; j++) {
-                for (uint8_t k = 0; k < hsf; k++) {
+            for (int j = 0; j < vsf; j++) {
+                for (int k = 0; k < hsf; k++) {
 
                     uint16_t img_width = width;
                     uint16_t x_to_mcu = (c->x
@@ -933,8 +933,8 @@ int decode_progressive_scan(
                     }
 
                     debug_print("Previous Data Unit\n");
-                    for (uint16_t x = 0; x < 8; x++) {
-                        for (uint16_t y = 0; y < 8; y++) {
+                    for (int x = 0; x < 8; x++) {
+                        for (int y = 0; y < 8; y++) {
                             debug_print("%d ", hd_du[(x * 8) + y]);
                         }
                         debug_print("\n");
@@ -999,7 +999,7 @@ int decode_progressive_scan(
         mcus_read++;
     }
 
-    for (uint8_t i = 0; i < sh->nics; i++) {
+    for (int i = 0; i < sh->nics; i++) {
         free(*(mcu + i));
     }
     free(mcu);
@@ -1030,7 +1030,7 @@ int decode_progressive_dc(
         curr_code = (curr_code << 1) + next_bit(bs);
     }
     int16_t dc = 0;
-    for (uint8_t j = 0; j < mag; j++) {
+    for (int j = 0; j < mag; j++) {
         dc = (dc << 1) + next_bit(bs);
     }
 
@@ -1063,11 +1063,11 @@ int decode_progressive_ac(
     HuffTable ac_huff,
     ScanHeader *sh
 ) {
-    for (uint8_t i = sh->ss; i <= sh->se; i++) {
+    for (int i = sh->ss; i <= sh->se; i++) {
         uint8_t mag = 0;
         int16_t curr_code = next_bit(bs);
         debug_print("huffman: %d\n", curr_code);
-        for (uint8_t j = 0; j < 16; j++) {
+        for (int j = 0; j < 16; j++) {
             if (ac_huff.symbols[j] == NULL) {
                 curr_code = (curr_code << 1) + next_bit(bs);
                 continue;
@@ -1090,7 +1090,7 @@ int decode_progressive_ac(
         if (size) {
             debug_print("ac_bits: ");
         }
-        for (uint8_t j = 0; j < size; j++) {
+        for (int j = 0; j < size; j++) {
             amp = (amp << 1) + next_bit(bs);
         }
         debug_print("\n");
@@ -1104,7 +1104,7 @@ int decode_progressive_ac(
         uint16_t eob = 1;
         if (run < 0xF && run > 0x0 && size == 0x0) {
             debug_print("eob bits ");
-            for (uint8_t j = 0; j < run; j++) {
+            for (int j = 0; j < run; j++) {
                 eob = (eob << 1) + next_bit(bs);
             }
             debug_print("\n");
@@ -1138,11 +1138,11 @@ int decode_progressive_ac_refine(
     HuffTable ac_huff,
     ScanHeader *sh
 ) {
-    for (uint8_t i = sh->ss; i <= sh->se; i++) {
+    for (int i = sh->ss; i <= sh->se; i++) {
         uint8_t mag = 0;
         int16_t curr_code = next_bit(bs);
         debug_print("huffman %d", curr_code);
-        for (uint8_t j = 0; j < 16; j++) {
+        for (int j = 0; j < 16; j++) {
             if (ac_huff.symbols[j] == NULL) {
                 curr_code =
                     (curr_code << 1) + next_bit(bs);
@@ -1210,7 +1210,7 @@ int decode_progressive_ac_refine(
                 if (run > 0) {
                     debug_print("eob bits ");
                 }
-                for (uint8_t j = 0; j < run; j++) {
+                for (int j = 0; j < run; j++) {
                     eob = (eob << 1) + next_bit(bs);
                 }
                 debug_print("\n");
@@ -1287,7 +1287,7 @@ int decode_correction(
 }
 
 void restart_marker(int16_t *pred, uint8_t len) {
-    for (uint8_t i = 0; i < len; i++) {
+    for (int i = 0; i < len; i++) {
         *(pred + i) = 0;
     }
 }

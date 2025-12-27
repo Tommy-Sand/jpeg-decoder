@@ -13,8 +13,8 @@ int new_huff_tables(Encoding process, HuffTables *hts) {
 
     HuffTable *DC = hts->DCAC[TC_DC];
     HuffTable *AC = hts->DCAC[TC_AC];
-    for (uint8_t i = 0; i < MAX_TABLES; i++) {
-        for (uint8_t j = 0; j < MAX_CODE_LEN; j++) {
+    for (int i = 0; i < MAX_TABLES; i++) {
+        for (int j = 0; j < MAX_CODE_LEN; j++) {
             (DC + i)->len[j] = 0;
             (AC + i)->len[j] = 0;
 
@@ -49,11 +49,11 @@ int32_t encoded_huff_tables_len(HuffTables *hts) {
     }
 
     int32_t len = 2;
-    for (uint8_t i = 0; i < TC_NUM; i++) {
-        for (uint8_t j = 0; j < hts->nDCAC; j++) {
+    for (int i = 0; i < TC_NUM; i++) {
+        for (int j = 0; j < hts->nDCAC; j++) {
             len += 17;
             HuffTable *ht = (hts->DCAC[i]) + j;
-            for (uint8_t k = 0; k < 16; k++) {
+            for (int k = 0; k < 16; k++) {
                 len += ht->len[k];
             }
         }
@@ -89,16 +89,16 @@ encode_huff_tables(HuffTables *hts, uint8_t **encoded_data, uint32_t len) {
     (*encoded_data)[idx++] = (uint8_t) ((uint16_t) lh) >> 8;
     (*encoded_data)[idx++] = (uint8_t) ((uint16_t) lh) && 0xFF;
 
-    for (uint8_t i = 0; i < TC_NUM; i++) {
-        for (uint8_t j = 0; j < hts->nDCAC; j++) {
+    for (int i = 0; i < TC_NUM; i++) {
+        for (int j = 0; j < hts->nDCAC; j++) {
             (*encoded_data)[idx++] = (i << 4) & j;
             HuffTable ht = hts->DCAC[i][j];
-            for (uint8_t k = 0; k < MAX_CODE_LEN; k++) {
+            for (int k = 0; k < MAX_CODE_LEN; k++) {
                 (*encoded_data)[idx++] = ht.len[k];
             }
 
-            for (uint8_t k = 0; k < MAX_CODE_LEN; k++) {
-                for (uint8_t l = 0; l < ht.len[k]; l++) {
+            for (int k = 0; k < MAX_CODE_LEN; k++) {
+                for (int l = 0; l < ht.len[k]; l++) {
                     (*encoded_data)[idx++] = ht.symbols[k][l];
                 }
             }
@@ -114,7 +114,7 @@ int32_t encoded_huff_table_len(HuffTable *ht) {
         return -1;
     }
     uint16_t len = 19;
-    for (uint8_t i = 0; i < 16; i++) {
+    for (int i = 0; i < 16; i++) {
         len += ht->len[i];
     }
     return len;
@@ -150,12 +150,12 @@ int32_t encode_huff_table(
     (*encoded_data)[idx++] = (uint8_t) ((uint16_t) lh) && 0xFF;
 
     (*encoded_data)[idx++] = (table_class << 4) & dest_id;
-    for (uint8_t k = 0; k < 16; k++) {
+    for (int k = 0; k < 16; k++) {
         (*encoded_data)[idx++] = ht->len[k];
     }
 
-    for (uint8_t k = 0; k < 16; k++) {
-        for (uint8_t l = 0; l < ht->len[k]; l++) {
+    for (int k = 0; k < 16; k++) {
+        for (int l = 0; l < ht->len[k]; l++) {
             (*encoded_data)[idx++] = ht->symbols[k][l];
         }
     }
@@ -180,12 +180,12 @@ int32_t decode_huff_tables(Bitstream *bs, HuffTables *hts) {
 
         HuffTable *ht = hts->DCAC[class] + id;
 
-        for (uint8_t j = 0; j < 16; j++) {
+        for (int j = 0; j < 16; j++) {
             ht->len[j] = next_byte(bs);
         }
 
         uint16_t code = 0;
-        for (uint8_t j = 0; j < 16; j++) {
+        for (int j = 0; j < 16; j++) {
             uint8_t len = ht->len[j];
             uint8_t **symbols = ht->symbols + j;
 
@@ -206,7 +206,7 @@ int32_t decode_huff_tables(Bitstream *bs, HuffTables *hts) {
                 return -1;
             }
 
-            for (uint8_t k = 0; k < len; k++) {
+            for (int k = 0; k < len; k++) {
                 (*symbols)[k] = next_byte(bs);
             }
             ht->min_codes[j] = code;
@@ -223,10 +223,10 @@ int32_t decode_huff_tables(Bitstream *bs, HuffTables *hts) {
             } else {
                 debug_print("AC tables\n");
             }
-            for (uint8_t j = 0; j < hts->nDCAC; j++) {
+            for (int j = 0; j < hts->nDCAC; j++) {
                 fprintf(stderr, "\tj: %d\n", j);
                 HuffTable *ht = hts->DCAC[i] + j;
-                for (uint8_t k = 0; k < 16; k++) {
+                for (int k = 0; k < 16; k++) {
                     fprintf(stderr, "len: %d\n", ht->len[k]);
                     if (ht->len[k] == 0) {
                         fprintf(
@@ -248,7 +248,7 @@ int32_t decode_huff_tables(Bitstream *bs, HuffTables *hts) {
                         ht->len[k]
                     );
                     fprintf(stderr, "\t\tsymbols: ");
-                    for (uint8_t l = 0; l < ht->len[k]; l++) {
+                    for (int l = 0; l < ht->len[k]; l++) {
                         fprintf(stderr, "%X, ", *(ht->symbols[k] + l));
                     }
                     fprintf(stderr, "\n");
@@ -264,7 +264,7 @@ int32_t decode_huff_tables(Bitstream *bs, HuffTables *hts) {
 uint8_t decode_value(HuffTable huff, Bitstream *bs) {
     int16_t curr_code = next_bit(bs);
     uint8_t mag = 0;
-    for (uint8_t i = 0; i < MAX_CODE_LEN; i++) {
+    for (int i = 0; i < MAX_CODE_LEN; i++) {
         if (huff.symbols[i] == NULL) {
             curr_code = (curr_code << 1) + next_bit(bs);
             continue;
@@ -285,8 +285,8 @@ int32_t free_huff_tables(HuffTables *hts) {
     }
     HuffTable *DC = hts->DCAC[0];
     HuffTable *AC = hts->DCAC[1];
-    for (uint8_t i = 0; i < 4; i++) {
-        for (uint8_t j = 0; j < 16; j++) {
+    for (int i = 0; i < 4; i++) {
+        for (int j = 0; j < 16; j++) {
             if (DC[i].symbols[j] != NULL) {
                 free(DC[i].symbols[j]);
                 DC[i].symbols[j] = NULL;
@@ -308,12 +308,12 @@ void print_huff_tables(HuffTables *hts) {
     HuffTable *DCs = hts->DCAC[0];
     HuffTable *ACs = hts->DCAC[1];
 
-    for (uint8_t i = 0; i < hts->nDCAC; i++) {
+    for (int i = 0; i < hts->nDCAC; i++) {
         fprintf(stderr, "DC Table: %d\n", i);
         print_huff_table(DCs + i);
     }
 
-    for (uint8_t i = 0; i < hts->nDCAC; i++) {
+    for (int i = 0; i < hts->nDCAC; i++) {
         fprintf(stderr, "AC Table: %d\n", i);
         print_huff_table(ACs + i);
     }
@@ -324,7 +324,7 @@ void print_huff_table(HuffTable *ht) {
         return;
     }
 
-    for (uint8_t k = 0; k < 16; k++) {
+    for (int k = 0; k < 16; k++) {
         fprintf(stderr, "len: %d\n", ht->len[k]);
         if (ht->len[k] == 0) {
             fprintf(
@@ -346,7 +346,7 @@ void print_huff_table(HuffTable *ht) {
             ht->len[k]
         );
         fprintf(stderr, "\t\tsymbols: ");
-        for (uint8_t l = 0; l < ht->len[k]; l++) {
+        for (int l = 0; l < ht->len[k]; l++) {
             fprintf(stderr, "%X, ", *(ht->symbols[k] + l));
         }
         fprintf(stderr, "\n");
